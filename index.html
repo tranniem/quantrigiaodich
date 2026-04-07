@@ -414,7 +414,8 @@ tr:hover td{background:#1a2535}
   </div>
 
   <div class="form-grid">
-    <div class="form-group"><label>Ngày mở lệnh</label><input type="datetime-local" id="f-open" onchange="onOpenTimeChange()"/></div>
+    <div class="form-group"><label>📅 Ngày đặt lệnh</label><input type="datetime-local" id="f-placed" onchange="onPlacedTimeChange()"/></div>
+    <div class="form-group"><label>📂 Ngày mở lệnh</label><input type="datetime-local" id="f-open" onchange="onOpenTimeChange()"/></div>
     <div class="form-group"><label>Ngày đóng lệnh</label><input type="datetime-local" id="f-close"/></div>
     <div class="form-group"><label>Entry ($)</label><input type="number" id="f-entry" placeholder="0.00" step="any" oninput="calcLot()"/></div>
     <div class="form-group"><label>SL ($)</label><input type="number" id="f-sl" placeholder="0.00" step="any" oninput="calcLot()"/></div>
@@ -435,6 +436,10 @@ tr:hover td{background:#1a2535}
       <div class="form-group">
         <label>⏱ Thời gian nắm giữ</label>
         <input type="text" id="f-hold-display" readonly style="color:var(--cyan);font-weight:700;font-size:14px;letter-spacing:.03em"/>
+      </div>
+      <div class="form-group">
+        <label>⏳ Thời gian chờ lệnh</label>
+        <input type="text" id="f-wait-display" readonly style="color:var(--yellow);font-weight:700;font-size:14px;letter-spacing:.03em"/>
       </div>
     </div>
     <div style="font-size:10px;color:var(--dim);margin-top:8px">PnL & RR chuyển sang thực tế khi có giá đóng • Lot theo pip SL và sizing vốn hiện tại • TG giữ cập nhật realtime</div>
@@ -631,12 +636,16 @@ function checkAuth() {
 }
 
 // ─── PIP SPECS ────────────────────────────────────────────────────────────────
+// pip      = 1 đơn vị pip (tính theo giá)
+// pipVal   = $ profit trên 1 lot chuẩn khi giá chạy 1 pip
+// minLot   = lot tối thiểu
+// Công thức: pipSL = |Entry - SL| / pip  →  Lot = Sizing / (pipSL × pipVal)
 const PIP_SPECS = {
-  BTCUSD:   { pip:1.0,   pipVal:1,  minLot:0.01, formula:'CRT'  },
-  ETHUSD:   { pip:0.01,  pipVal:1,  minLot:0.01, formula:'CRT'  },
-  XAUUSD:   { pip:0.1,   pipVal:10, minLot:0.01, formula:'GOLD' },
-  USOILUSD: { pip:0.01,  pipVal:10, minLot:0.1,  formula:'CRT'  },
-  XAGUSD:   { pip:0.01,  pipVal:50, minLot:0.01, formula:'SILVER'},
+  BTCUSD:   { pip: 1,    pipVal: 1,  minLot: 0.01 }, // 1 pip = $1 giá, $1/lot
+  ETHUSD:   { pip: 1,    pipVal: 1,  minLot: 0.01 }, // 1 pip = $1 giá, $1/lot
+  XAUUSD:   { pip: 0.1,  pipVal: 10, minLot: 0.01 }, // 1 pip = $0.1 giá, $10/lot (100oz)
+  USOILUSD: { pip: 0.01, pipVal: 10, minLot: 0.1  }, // 1 pip = $0.01 giá, $10/lot (1000 thùng)
+  XAGUSD:   { pip: 0.01, pipVal: 50, minLot: 0.01 }, // 1 pip = $0.01 giá, $50/lot (5000oz)
 };
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
@@ -652,6 +661,54 @@ let state = {
 let currentChecks = [0,0,0,0,0,0,0,0];
 let hideClosed = false;
 let modalHoldTimer = null; // realtime timer cho modal
+let modalWaitTimer = null; // realtime timer chờ lệnh
+
+function startWaitTimer(placedMs, openMs) {
+  stopWaitTimer();
+  const el = document.getElementById('f-wait-display');
+  if (!el) return;
+  if (openMs) {
+    // Đã mở → hiện tĩnh thời gian chờ
+    const ms = openMs - placedMs;
+    if (ms <= 0) { el.value = 'Mở ngay'; el.style.color = 'var(--green)'; return; }
+    el.value = '✅ ' + fmtHoldLong(ms);
+    el.style.color = 'var(--muted)';
+    return;
+  }
+  // Chưa mở → đếm realtime
+  function tick() {
+    const ms = Date.now() - placedMs;
+    if (ms < 0) { el.value = '--'; return; }
+    const totalSec = Math.floor(ms / 1000);
+    const d = Math.floor(totalSec / 86400);
+    const h = Math.floor((totalSec % 86400) / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    let str = d > 0 ? `${d}n ${h}g ${m}p` : h > 0 ? `${h}g ${m}p ${s}s` : m > 0 ? `${m}p ${s}s` : `${s}s`;
+    el.value = '⏳ chờ ' + str;
+    el.style.color = 'var(--yellow)';
+  }
+  tick();
+  modalWaitTimer = setInterval(tick, 1000);
+}
+
+function stopWaitTimer() {
+  if (modalWaitTimer) { clearInterval(modalWaitTimer); modalWaitTimer = null; }
+  const el = document.getElementById('f-wait-display');
+  if (el) { el.value = '--'; el.style.color = 'var(--dim)'; }
+}
+
+function onPlacedTimeChange() {
+  const placedVal = document.getElementById('f-placed').value;
+  const openVal = document.getElementById('f-open').value;
+  const status = document.getElementById('f-status').value;
+  if (!placedVal) { stopWaitTimer(); return; }
+  const placedMs = new Date(placedVal).getTime();
+  const openMs = openVal ? new Date(openVal).getTime() : null;
+  // Nếu lệnh huỷ → không tính
+  if (status === 'Huỷ lệnh') { stopWaitTimer(); return; }
+  startWaitTimer(placedMs, openMs);
+}
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 window.onload = () => {
@@ -1001,15 +1058,15 @@ function openTradeModal(editId) {
     document.getElementById('f-tp').value = '';
     document.getElementById('f-close-price').value = '';
     document.getElementById('f-note').value = '';
-    document.getElementById('f-open').value = new Date().toISOString().slice(0,16);
+    document.getElementById('f-placed').value = new Date().toISOString().slice(0,16);
+    document.getElementById('f-open').value = '';
     document.getElementById('f-close').value = '';
   }
   resetCheckUI();
   calcLot();
-  stopModalHoldTimer();
-  // Nếu tạo mới, thời gian tính từ lúc mở modal (chưa có openTime thực)
-  const openVal = document.getElementById('f-open').value;
-  if (openVal) startModalHoldTimer(new Date(openVal).getTime());
+  stopModalHoldTimer(); stopWaitTimer();
+  const placedVal = document.getElementById('f-placed').value;
+  if (placedVal) startWaitTimer(new Date(placedVal).getTime(), null);
   document.getElementById('trade-modal').classList.add('open');
 }
 
@@ -1028,6 +1085,8 @@ function editTrade(id) {
   document.getElementById('f-tp').value = t.tp || '';
   document.getElementById('f-close-price').value = t.closePrice || '';
   document.getElementById('f-note').value = t.note || '';
+  if (t.placedTime) document.getElementById('f-placed').value = new Date(t.placedTime).toISOString().slice(0,16);
+  else document.getElementById('f-placed').value = '';
   if (t.openTime) document.getElementById('f-open').value = new Date(t.openTime).toISOString().slice(0,16);
   if (t.closeTime) document.getElementById('f-close').value = new Date(t.closeTime).toISOString().slice(0,16);
   currentChecks = t.checks ? [...t.checks] : [0,0,0,0,0,0,0,0];
@@ -1038,18 +1097,25 @@ function editTrade(id) {
     else if (v === -1) { item.classList.add('fail'); item.querySelector('.check-status').textContent='Không'; item.querySelector('.check-status').style.color='var(--red)'; }
   });
   calcLot();
-  // Start/stop hold timer tuỳ trạng thái lệnh
+  // Hold timer
   const holdEl = document.getElementById('f-hold-display');
   if (t.openTime && t.closeTime) {
-    // Lệnh đã đóng → hiện tĩnh tổng thời gian
     const ms = t.closeTime - t.openTime;
     if (holdEl) { holdEl.value = '✅ ' + fmtHoldLong(ms); holdEl.style.color = 'var(--muted)'; }
     stopModalHoldTimer();
   } else if (t.openTime) {
-    // Lệnh đang mở → realtime
     startModalHoldTimer(t.openTime);
   } else {
     stopModalHoldTimer();
+  }
+  // Wait timer (chờ lệnh = từ placed đến open)
+  stopWaitTimer();
+  const status = t.status || '';
+  if (status === 'Huỷ lệnh') {
+    const el = document.getElementById('f-wait-display');
+    if (el) { el.value = 'Đã huỷ'; el.style.color = 'var(--red)'; }
+  } else if (t.placedTime) {
+    startWaitTimer(t.placedTime, t.openTime || null);
   }
 }
 
@@ -1103,6 +1169,7 @@ function stopModalHoldTimer() {
 
 function closeTradeModal() {
   stopModalHoldTimer();
+  stopWaitTimer();
   document.getElementById('trade-modal').classList.remove('open');
 }
 
@@ -1140,15 +1207,17 @@ function calcLot() {
   const spec = PIP_SPECS[sym] || PIP_SPECS['BTCUSD'];
   const sizingUsd = getSizingUsd();
   document.getElementById('f-sizing-display').value = '$' + sizingUsd.toFixed(2);
-
   const isBuy = ordertype.includes('Buy');
 
   if (!isNaN(entry) && !isNaN(sl) && sl > 0 && entry > 0) {
-    const priceDiffSl = Math.abs(entry - sl);
-    const pipSl = priceDiffSl / spec.pip;
+    const priceDiff = Math.abs(entry - sl);
+    // pipSL = chênh lệch giá / pip (đơn vị pip của mã đó)
+    const pipSl = priceDiff / spec.pip;
     document.getElementById('f-pip-sl').value = pipSl.toFixed(2) + ' pip';
-    // Lot formula
-    const lot = Math.max(spec.minLot, Math.floor((sizingUsd / (pipSl * spec.pipVal)) / spec.minLot) * spec.minLot);
+
+    // Lot = Sizing$ ÷ pipSL ÷ pipVal
+    const lotRaw = sizingUsd / pipSl / spec.pipVal;
+    const lot = Math.max(spec.minLot, Math.floor(lotRaw / spec.minLot) * spec.minLot);
     document.getElementById('f-lot').value = lot.toFixed(2) + ' lot';
 
     if (!isNaN(tp) && tp > 0) {
@@ -1156,19 +1225,29 @@ function calcLot() {
       document.getElementById('f-pip-tp').value = pipTp.toFixed(2) + ' pip';
       const rr = pipSl > 0 ? pipTp / pipSl : 0;
 
-      // If close price entered → show ACTUAL RR and PnL
       if (!isNaN(closePrice) && closePrice > 0) {
+        // Có giá đóng → tính THỰC TẾ
         const pDiff = isBuy ? (closePrice - entry) : (entry - closePrice);
         const pipsActual = pDiff / spec.pip;
         const pnlActual = pipsActual * spec.pipVal * lot;
-        const rrActual = pipSl > 0 ? Math.abs(pipsActual) / pipSl * (pipsActual >= 0 ? 1 : -1) : 0;
+        const rrActual = pipSl > 0 ? pipsActual / pipSl : 0;
         document.getElementById('f-rr').value = '1:' + Math.abs(rrActual).toFixed(2) + (rrActual >= 0 ? ' ✅ thực tế' : ' ❌ thực tế');
         document.getElementById('f-pnl-est').value = (pnlActual >= 0 ? '+' : '') + '$' + pnlActual.toFixed(2) + ' (THỰC TẾ)';
       } else {
+        // Chưa có giá đóng → ước tính theo TP
         document.getElementById('f-rr').value = '1:' + rr.toFixed(2) + ' (theo TP)';
         const pnlTP = pipTp * spec.pipVal * lot;
         document.getElementById('f-pnl-est').value = '+$' + pnlTP.toFixed(2) + ' (nếu TP)';
       }
+    } else if (!isNaN(closePrice) && closePrice > 0) {
+      // Có close price nhưng không có TP
+      const pDiff = isBuy ? (closePrice - entry) : (entry - closePrice);
+      const pipsActual = pDiff / spec.pip;
+      const pnlActual = pipsActual * spec.pipVal * lot;
+      const rrActual = pipSl > 0 ? pipsActual / pipSl : 0;
+      document.getElementById('f-pip-tp').value = '--';
+      document.getElementById('f-rr').value = '1:' + Math.abs(rrActual).toFixed(2) + (rrActual >= 0 ? ' ✅' : ' ❌') + ' thực tế';
+      document.getElementById('f-pnl-est').value = (pnlActual >= 0 ? '+' : '') + '$' + pnlActual.toFixed(2) + ' (THỰC TẾ)';
     } else {
       document.getElementById('f-pip-tp').value = '--';
       document.getElementById('f-rr').value = '--';
@@ -1189,6 +1268,7 @@ function saveTrade(goToLesson) {
   const tp = parseFloat(document.getElementById('f-tp').value) || null;
   const closePrice = parseFloat(document.getElementById('f-close-price').value) || null;
   const note = document.getElementById('f-note').value;
+  const placedTime = document.getElementById('f-placed').value ? new Date(document.getElementById('f-placed').value).getTime() : null;
   const openTime = document.getElementById('f-open').value ? new Date(document.getElementById('f-open').value).getTime() : null;
   const closeTime = document.getElementById('f-close').value ? new Date(document.getElementById('f-close').value).getTime() : null;
   const spec = PIP_SPECS[sym] || PIP_SPECS['BTCUSD'];
@@ -1198,7 +1278,8 @@ function saveTrade(goToLesson) {
 
   if (entry && sl) {
     pipSl = Math.abs(entry - sl) / spec.pip;
-    lot = Math.max(spec.minLot, Math.floor((sizingUsd / (pipSl * spec.pipVal)) / spec.minLot) * spec.minLot);
+    const lotRaw = sizingUsd / pipSl / spec.pipVal;
+    lot = Math.max(spec.minLot, Math.floor(lotRaw / spec.minLot) * spec.minLot);
     if (tp) {
       pipTp = Math.abs(tp - entry) / spec.pip;
       rr = pipSl > 0 ? pipTp / pipSl : 0;
@@ -1218,7 +1299,7 @@ function saveTrade(goToLesson) {
 
   const editId = document.getElementById('f-edit-id').value;
   const tradeId = editId || Date.now().toString();
-  const tradeObj = { id: tradeId, symbol: sym, ordertype, strat, status, entry, sl, tp, closePrice, note, openTime, closeTime, checks: [...currentChecks], pipSl, pipTp, lot, rr, pnlUsd, rrActual, pnlActual: pnlActual != null ? pnlActual : undefined, sizingUsd };
+  const tradeObj = { id: tradeId, symbol: sym, ordertype, strat, status, entry, sl, tp, closePrice, note, placedTime, openTime, closeTime, checks: [...currentChecks], pipSl, pipTp, lot, rr, pnlUsd, rrActual, pnlActual: pnlActual != null ? pnlActual : undefined, sizingUsd };
 
   if (editId) {
     const idx = state.trades.findIndex(t => t.id === editId);
