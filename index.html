@@ -1,0 +1,1525 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>MAXS Trade Journal</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1219;--bg2:#1e293b;--bg3:#0f172a;--border:#334155;
+  --text:#e2e8f0;--muted:#94a3b8;--dim:#64748b;
+  --orange:#e8601c;--navy:#1a2d6d;
+  --green:#10b981;--red:#ef4444;--blue:#3b82f6;
+  --yellow:#f59e0b;--purple:#8b5cf6;--cyan:#06b6d4;
+}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;font-size:14px;min-height:100vh}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;flex-wrap:wrap;gap:8px}
+.nav-logo{display:flex;align-items:center;gap:8px}
+.logo-text{font-size:17px;font-weight:700;color:#fff}
+.logo-text span{color:var(--orange)}
+.nav-tabs{display:flex;gap:4px}
+.nav-tab{padding:6px 16px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:500;background:transparent;color:var(--muted);transition:.2s}
+.nav-tab.active{background:var(--navy);color:#fff}
+.nav-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.btn{padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text);cursor:pointer;font-size:12px;font-weight:500;transition:.2s}
+.btn:hover{background:var(--border)}
+.btn-primary{background:var(--navy);border-color:var(--navy);color:#fff}
+.btn-primary:hover{background:#243d8a}
+.btn-orange{background:var(--orange);border-color:var(--orange);color:#fff}
+.btn-orange:hover{opacity:.9}
+.btn-green{background:var(--green);border-color:var(--green);color:#fff}
+.btn-red{background:var(--red);border-color:var(--red);color:#fff}
+.btn-sm{padding:4px 9px;font-size:11px}
+.btn-danger{background:var(--red);border-color:var(--red);color:#fff}
+.btn-cyan{background:var(--cyan);border-color:var(--cyan);color:#000}
+.page{display:none;padding:18px 20px;max-width:1600px;margin:0 auto}
+.page.active{display:block}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+.kpi-label{font-size:10px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em}
+.kpi-val{font-size:20px;font-weight:700}
+.kpi-sub{font-size:10px;color:var(--dim);margin-top:2px}
+.green{color:var(--green)}.red{color:var(--red)}.blue{color:var(--blue)}
+.orange{color:var(--orange)}.yellow{color:var(--yellow)}.purple{color:var(--purple)}.cyan{color:var(--cyan)}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.section-title{font-size:15px;font-weight:600;color:#fff}
+.tbl-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border);margin-bottom:16px}
+table{width:100%;border-collapse:collapse;min-width:1100px}
+th{background:var(--bg2);padding:9px 10px;text-align:left;font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;border-bottom:1px solid var(--border)}
+td{padding:9px 10px;border-bottom:1px solid #1a2535;font-size:11px;vertical-align:middle;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#1a2535}
+.badge{display:inline-block;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:700}
+.badge-wait{background:#1e293b;color:var(--muted)}
+.badge-open{background:#1a3a5c;color:var(--blue)}
+.badge-be{background:#1a3030;color:var(--cyan)}
+.badge-plus{background:#1a3020;color:#34d399}
+.badge-win{background:#0f2a1f;color:var(--green)}
+.badge-loss{background:#2a0f0f;color:var(--red)}
+.badge-bl{background:#0f2a1f;color:var(--green)}
+.badge-sl{background:#2a0f0f;color:var(--red)}
+.badge-bs{background:#1a2a4a;color:#60a5fa}
+.badge-ss{background:#2a1a3a;color:#c084fc}
+.badge-fibo{background:#2a1a4a;color:var(--purple)}
+.badge-bo{background:#1a2a4a;color:var(--blue)}
+.badge-ma{background:#2a2a1a;color:var(--yellow)}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;align-items:flex-start;justify-content:center;padding:20px 10px;overflow-y:auto}
+.modal-bg.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:22px;width:min(96vw,820px);margin:auto}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.modal-title{font-size:15px;font-weight:700;color:#fff}
+.modal-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;padding:0 4px}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:10px;margin-bottom:14px}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group label{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.form-group input,.form-group select,.form-group textarea{
+  background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+  padding:7px 10px;color:var(--text);font-size:13px;outline:none;
+}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:#1a2d6d}
+.form-group input[readonly]{color:var(--muted);cursor:default}
+.form-group textarea{resize:vertical;min-height:55px;font-size:12px}
+.calc-box{background:var(--bg3);border:1px solid #1a2d6d44;border-radius:10px;padding:12px;margin-bottom:14px}
+.calc-box-title{font-size:10px;color:var(--navy);font-weight:700;text-transform:uppercase;margin-bottom:10px;letter-spacing:.05em}
+.checklist{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:14px}
+.check-item{display:flex;align-items:flex-start;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;cursor:pointer;transition:.15s}
+.check-item.ok{border-color:var(--green);background:#0a1f15}
+.check-item.fail{border-color:var(--red);background:#1f0a0a}
+.check-dot{width:13px;height:13px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;margin-top:2px;transition:.15s}
+.check-item.ok .check-dot{background:var(--green);border-color:var(--green)}
+.check-item.fail .check-dot{background:var(--red);border-color:var(--red)}
+.check-label{font-size:11px;color:var(--text);line-height:1.35;flex:1}
+.check-status{font-size:10px;font-weight:700;white-space:nowrap;margin-top:2px}
+.chart-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px}
+.chart-title{font-size:12px;color:var(--muted);margin-bottom:10px;font-weight:500}
+.equity-svg{width:100%;height:110px}
+.lesson-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px}
+.lesson-card.linked{border-left:3px solid var(--orange)}
+.lesson-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.lesson-cat{padding:2px 9px;border-radius:5px;font-size:10px;font-weight:700}
+.cat-psych{background:#2a1a4a;color:var(--purple)}
+.cat-tech{background:#1a2a4a;color:var(--blue)}
+.cat-disc{background:#2a2a1a;color:var(--yellow)}
+.cat-cap{background:#1a3020;color:var(--green)}
+.cat-strat{background:#1a3030;color:var(--cyan)}
+.stars{color:var(--yellow);font-size:12px}
+.lesson-title{font-size:13px;font-weight:600;color:#fff;margin-bottom:8px}
+.lesson-field{margin-bottom:7px}
+.lesson-field-label{font-size:10px;color:var(--dim);text-transform:uppercase;margin-bottom:2px;letter-spacing:.04em}
+.lesson-field-val{font-size:12px;color:var(--muted);line-height:1.5}
+.trade-summary-box{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px}
+.trade-summary-title{font-size:11px;color:var(--orange);font-weight:700;margin-bottom:8px}
+.trade-summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.ts-item{text-align:center}
+.ts-label{font-size:9px;color:var(--dim);text-transform:uppercase;margin-bottom:2px}
+.ts-val{font-size:13px;font-weight:700}
+.coin-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-bottom:16px}
+.coin-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px}
+.coin-name{font-size:14px;font-weight:700;margin-bottom:7px}
+.coin-row{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:3px}
+.sizing-banner{background:linear-gradient(135deg,#1a2d6d1a,#e8601c0d);border:1px solid #1a2d6d55;border-radius:12px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.sb-item{}
+.sb-label{font-size:10px;color:var(--muted);margin-bottom:3px;text-transform:uppercase}
+.sb-val{font-size:18px;font-weight:700;color:#fff}
+.sb-sub{font-size:10px;color:var(--dim);margin-top:2px}
+.vdivider{width:1px;height:44px;background:var(--border)}
+.mode-tag{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700}
+.mode-6{background:#1a2040;color:#7ab4e0}
+.mode-10{background:#0f2a1f;color:var(--green)}
+.filter-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.filter-row select,.filter-row input{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:5px 10px;color:var(--text);font-size:12px;outline:none}
+.hold-time{color:var(--cyan);font-size:11px}
+.empty{text-align:center;padding:40px;color:var(--dim);font-size:13px}
+.empty-icon{font-size:28px;margin-bottom:8px}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.cap-action-row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.divider{height:1px;background:var(--border);margin:14px 0}
+/* LOGIN SCREEN */
+.login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center}
+.login-box{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:40px 36px;width:min(92vw,380px);text-align:center}
+.login-logo{font-size:32px;font-weight:800;color:#fff;margin-bottom:4px}
+.login-logo span{color:var(--orange)}
+.login-sub{font-size:12px;color:var(--dim);margin-bottom:28px}
+.login-label{font-size:11px;color:var(--muted);text-align:left;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em}
+.login-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-size:15px;outline:none;margin-bottom:10px;letter-spacing:.1em}
+.login-input:focus{border-color:var(--navy)}
+.login-btn{width:100%;padding:12px;border-radius:10px;border:none;background:var(--navy);color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-top:6px;transition:.2s}
+.login-btn:hover{background:#243d8a}
+.login-err{color:var(--red);font-size:12px;margin-top:8px;min-height:18px}
+.login-hint{font-size:10px;color:var(--dim);margin-top:16px;line-height:1.5}
+.login-bar{height:3px;border-radius:2px;background:linear-gradient(90deg,var(--navy),var(--orange));margin-bottom:28px}
+/* Lesson linked trade badge */
+.linked-trade-tag{display:inline-flex;align-items:center;gap:4px;background:#1a2d6d22;border:1px solid #1a2d6d55;border-radius:6px;padding:2px 8px;font-size:10px;color:#7ab4e0}
+/* Realtime hold timer */
+.rt-timer{color:var(--cyan);font-size:11px;font-weight:600;font-variant-numeric:tabular-nums}
+.rt-timer.blink{animation:blink 1.4s step-end infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.45}}
+/* Lesson stats bar */
+.lesson-stats-bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.ls-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 18px;min-width:110px;flex:1;cursor:pointer;transition:.15s;position:relative}
+.ls-card:hover{border-color:var(--muted)}
+.ls-card.active-filter{border-width:2px}
+.ls-card-label{font-size:10px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;letter-spacing:.05em}
+.ls-card-val{font-size:26px;font-weight:700}
+.ls-bar{height:3px;border-radius:2px;margin-top:6px;opacity:.5}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">MAX<span>S</span></div>
+    <div class="login-sub">Trade Journal · Hệ thống MAXS</div>
+    <div class="login-bar"></div>
+    <label class="login-label">Mật khẩu</label>
+    <input class="login-input" type="password" id="login-pass" placeholder="••••••••"
+      onkeydown="if(event.key==='Enter')doLogin()"/>
+    <button class="login-btn" onclick="doLogin()">🔐 Đăng nhập</button>
+    <div class="login-err" id="login-err"></div>
+    <div class="login-hint">Truy cập riêng tư · Dữ liệu lưu trên thiết bị của bạn</div>
+  </div>
+</div>
+
+<!-- NAV -->
+<div class="nav">
+  <div class="nav-logo">
+    <div class="logo-text">MAX<span>S</span></div>
+    <span style="color:var(--dim);font-size:11px">Trade Journal</span>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" id="tab-dashboard" onclick="showPage('dashboard',this)">📊 Dashboard</button>
+    <button class="nav-tab" id="tab-trades" onclick="showPage('trades',this)">📋 Quản lý lệnh</button>
+    <button class="nav-tab" id="tab-lessons" onclick="showPage('lessons',this)">📚 Đúc kết</button>
+  </div>
+  <div class="nav-actions">
+    <span id="usdvnd-rate" style="font-size:11px;color:var(--dim)">USD/VND: --</span>
+    <button class="btn btn-sm" onclick="openCapModal()">💰 Nạp/Rút vốn</button>
+    <button class="btn btn-sm" onclick="exportJSON()">📤 Xuất JSON</button>
+    <label class="btn btn-sm" style="cursor:pointer">📥 Nhập JSON<input type="file" accept=".json" onchange="importJSON(event)" style="display:none"></label>
+    <button class="btn btn-orange btn-sm" onclick="openTradeModal()">+ Thêm lệnh</button>
+    <button class="btn btn-sm" onclick="doLogout()" title="Đăng xuất" style="color:var(--dim)">🔒</button>
+  </div>
+</div>
+
+<!-- PAGE 1: DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <!-- SIZING BANNER -->
+  <div class="sizing-banner">
+    <div class="sb-item">
+      <div class="sb-label">Vốn hiện tại</div>
+      <div class="sb-val" id="cap-display">$18,000.00</div>
+      <div class="sb-sub" id="cap-vnd">≈ --</div>
+    </div>
+    <div class="vdivider"></div>
+    <div class="sb-item">
+      <div class="sb-label">Vốn ban đầu</div>
+      <div style="display:flex;gap:6px;align-items:center;margin-top:2px">
+        <input id="init-cap" type="number" value="18000" step="any"
+          style="width:90px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:#fff;font-size:13px"
+          onchange="updateInitCap()"/>
+        <span style="font-size:10px;color:var(--dim)">USD</span>
+      </div>
+    </div>
+    <div class="vdivider"></div>
+    <div class="sb-item">
+      <div class="sb-label">Sizing hiện tại</div>
+      <div id="sizing-mode-display" class="mode-tag mode-6" style="margin-top:3px">6% / lệnh</div>
+      <div class="sb-sub" id="sizing-usd">= $1,080.00</div>
+    </div>
+    <div class="vdivider"></div>
+    <div class="sb-item">
+      <div class="sb-label">Streak</div>
+      <div id="streak-display" style="font-size:18px;font-weight:700;color:var(--dim);margin-top:3px">--</div>
+      <div class="sb-sub" id="streak-sub">chờ dữ liệu</div>
+    </div>
+    <div class="vdivider"></div>
+    <div class="sb-item">
+      <div class="sb-label">Nạp thêm (tổng)</div>
+      <div style="font-size:16px;font-weight:700;color:var(--cyan)" id="total-deposit">+$0.00</div>
+    </div>
+    <div class="sb-item">
+      <div class="sb-label">Rút vốn (tổng)</div>
+      <div style="font-size:16px;font-weight:700;color:var(--yellow)" id="total-withdraw">-$0.00</div>
+    </div>
+  </div>
+
+  <!-- KPI -->
+  <div class="kpi-grid">
+    <div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-val green" id="kpi-wr">--%</div><div class="kpi-sub" id="kpi-wl">0W / 0L</div></div>
+    <div class="kpi"><div class="kpi-label">RR trung bình</div><div class="kpi-val orange" id="kpi-rr">--</div><div class="kpi-sub">thực tế đạt</div></div>
+    <div class="kpi"><div class="kpi-label">Tổng PnL ($)</div><div class="kpi-val" id="kpi-pnl">$0.00</div><div class="kpi-sub" id="kpi-pnl-vnd">≈ --</div></div>
+    <div class="kpi"><div class="kpi-label">Hiệu suất kép</div><div class="kpi-val cyan" id="kpi-compound">+0.00%</div><div class="kpi-sub">equity growth</div></div>
+    <div class="kpi"><div class="kpi-label">Tổng lệnh</div><div class="kpi-val blue" id="kpi-total">0</div><div class="kpi-sub" id="kpi-open">0 đang mở</div></div>
+    <div class="kpi"><div class="kpi-label">TG giữ BQ</div><div class="kpi-val yellow" id="kpi-holdtime">--</div><div class="kpi-sub">lệnh đã đóng</div></div>
+  </div>
+
+  <!-- EQUITY CHART -->
+  <div class="chart-box">
+    <div class="chart-title">📈 Biểu đồ tăng trưởng vốn (Equity Curve)</div>
+    <svg class="equity-svg" id="equity-svg" viewBox="0 0 800 110" preserveAspectRatio="none">
+      <text x="400" y="60" text-anchor="middle" fill="#334155" font-size="13">Chưa có dữ liệu</text>
+    </svg>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-top:3px">
+      <span id="eq-start">Bắt đầu</span><span id="eq-end">Hiện tại</span>
+    </div>
+  </div>
+
+  <!-- PER COIN -->
+  <div class="section-header"><div class="section-title">📊 Thống kê theo mã</div></div>
+  <div class="coin-stats" id="coin-stats-grid">
+    <div class="empty"><div class="empty-icon">📉</div>Chưa có lệnh đóng</div>
+  </div>
+
+  <!-- CAPITAL LOG -->
+  <div class="section-header" style="margin-top:8px"><div class="section-title">💰 Lịch sử nạp/rút vốn</div></div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Ngày</th><th>Loại</th><th>Số tiền ($)</th><th>Ghi chú</th><th></th></tr></thead>
+      <tbody id="cap-log-tbody"><tr><td colspan="5" class="empty">Chưa có giao dịch vốn</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- PAGE 2: TRADES -->
+<div class="page" id="page-trades">
+  <div class="section-header">
+    <div class="section-title">📋 Danh sách lệnh</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <div class="filter-row" style="margin:0">
+        <select id="filter-symbol" onchange="renderTrades()">
+          <option value="">Tất cả mã</option>
+          <option>BTCUSD</option><option>ETHUSD</option><option>XAUUSD</option><option>USOILUSD</option><option>XAGUSD</option>
+        </select>
+        <select id="filter-status" onchange="renderTrades()">
+          <option value="">Tất cả TT</option>
+          <option>Chờ lệnh</option><option>Đang mở</option><option>Đã dời về 0</option><option>Đã dời về dương</option><option>Chốt lời</option><option>Cắt lỗ</option>
+        </select>
+        <button class="btn btn-sm" onclick="toggleHideClosed()" id="toggle-hide-btn">Ẩn lệnh đóng</button>
+      </div>
+      <button class="btn btn-orange" onclick="openTradeModal()">+ Thêm lệnh</button>
+    </div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Mã</th><th>Loại lệnh</th><th>Chiến lược</th>
+          <th>Entry$</th><th>SL$</th><th>TP$</th><th>Giá đóng</th>
+          <th>Pip SL</th><th>Pip TP</th><th>Lot</th>
+          <th>RR</th><th>PnL$</th><th>PnL VND</th>
+          <th>TG giữ</th><th>Trạng thái</th><th>8 Bước</th><th>Hành động</th>
+        </tr>
+      </thead>
+      <tbody id="trades-tbody">
+        <tr><td colspan="18" class="empty"><div class="empty-icon">📋</div>Chưa có lệnh nào</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- PAGE 3: LESSONS -->
+<div class="page" id="page-lessons">
+  <div class="section-header">
+    <div class="section-title">📚 Đúc kết bài học</div>
+    <button class="btn btn-orange" onclick="openLessonModal()">+ Thêm đúc kết</button>
+  </div>
+  <!-- LESSON STATS BAR -->
+  <div class="lesson-stats-bar" id="lesson-stats-bar">
+    <div class="ls-card" onclick="filterLessonCat('')" id="lsb-all">
+      <div class="ls-card-label">Tổng</div>
+      <div class="ls-card-val blue" id="lsb-total">0</div>
+      <div class="ls-bar" style="background:var(--blue)"></div>
+    </div>
+    <div class="ls-card" onclick="filterLessonCat('Tâm lý')" id="lsb-psych">
+      <div class="ls-card-label">Tâm lý</div>
+      <div class="ls-card-val purple" id="lsb-psych-val">0</div>
+      <div class="ls-bar" style="background:var(--purple)"></div>
+    </div>
+    <div class="ls-card" onclick="filterLessonCat('Kỹ thuật')" id="lsb-tech">
+      <div class="ls-card-label">Kỹ thuật</div>
+      <div class="ls-card-val yellow" id="lsb-tech-val">0</div>
+      <div class="ls-bar" style="background:var(--yellow)"></div>
+    </div>
+    <div class="ls-card" onclick="filterLessonCat('Vốn')" id="lsb-cap">
+      <div class="ls-card-label">Quản trị vốn</div>
+      <div class="ls-card-val green" id="lsb-cap-val">0</div>
+      <div class="ls-bar" style="background:var(--green)"></div>
+    </div>
+    <div class="ls-card" onclick="filterLessonCat('Kỷ luật')" id="lsb-disc">
+      <div class="ls-card-label">Kỷ luật</div>
+      <div class="ls-card-val red" id="lsb-disc-val">0</div>
+      <div class="ls-bar" style="background:var(--red)"></div>
+    </div>
+    <div class="ls-card" onclick="filterLessonCat('Chiến lược')" id="lsb-strat">
+      <div class="ls-card-label">Chiến lược</div>
+      <div class="ls-card-val cyan" id="lsb-strat-val">0</div>
+      <div class="ls-bar" style="background:var(--cyan)"></div>
+    </div>
+  </div>
+
+  <div class="filter-row">
+    <select id="filter-lesson-cat" onchange="renderLessons()">
+      <option value="">Tất cả phân loại</option>
+      <option>Tâm lý</option><option>Kỹ thuật</option><option>Kỷ luật</option><option>Vốn</option><option>Chiến lược</option>
+    </select>
+    <select id="filter-lesson-symbol" onchange="renderLessons()">
+      <option value="">Tất cả mã</option>
+      <option>BTCUSD</option><option>ETHUSD</option><option>XAUUSD</option><option>USOILUSD</option><option>XAGUSD</option>
+    </select>
+    <select id="filter-lesson-outcome" onchange="renderLessons()">
+      <option value="">Tất cả kết quả</option>
+      <option>Chốt lời</option><option>Cắt lỗ</option>
+    </select>
+  </div>
+  <div id="lessons-list"><div class="empty"><div class="empty-icon">📚</div>Chưa có đúc kết nào</div></div>
+</div>
+
+<!-- MODAL: THÊM/SỬA LỆNH -->
+<div class="modal-bg" id="trade-modal">
+<div class="modal">
+  <div class="modal-header">
+    <div class="modal-title" id="trade-modal-title">➕ Thêm lệnh mới</div>
+    <button class="modal-close" onclick="closeTradeModal()">✕</button>
+  </div>
+
+  <div class="form-grid">
+    <div class="form-group">
+      <label>Mã giao dịch</label>
+      <select id="f-symbol" onchange="calcLot()">
+        <option>BTCUSD</option><option>ETHUSD</option><option>XAUUSD</option><option>USOILUSD</option><option>XAGUSD</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Loại lệnh</label>
+      <select id="f-ordertype">
+        <option>Buy Limit</option><option>Sell Limit</option><option>Buy Stop</option><option>Sell Stop</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Chiến lược</label>
+      <select id="f-strat">
+        <option>Fibo chuỗi</option><option>Breakout (BO)</option><option>MA</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Trạng thái</label>
+      <select id="f-status">
+        <option>Chờ lệnh</option><option>Đang mở</option><option>Đã dời về 0</option><option>Đã dời về dương</option><option>Chốt lời</option><option>Cắt lỗ</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="form-grid">
+    <div class="form-group"><label>Ngày mở lệnh</label><input type="datetime-local" id="f-open" onchange="onOpenTimeChange()"/></div>
+    <div class="form-group"><label>Ngày đóng lệnh</label><input type="datetime-local" id="f-close"/></div>
+    <div class="form-group"><label>Entry ($)</label><input type="number" id="f-entry" placeholder="0.00" step="any" oninput="calcLot()"/></div>
+    <div class="form-group"><label>SL ($)</label><input type="number" id="f-sl" placeholder="0.00" step="any" oninput="calcLot()"/></div>
+    <div class="form-group"><label>TP ($)</label><input type="number" id="f-tp" placeholder="0.00" step="any" oninput="calcLot()"/></div>
+    <div class="form-group"><label>Giá đóng thực tế ($)</label><input type="number" id="f-close-price" placeholder="Nhập khi đóng lệnh" step="any" oninput="calcLot()"/></div>
+  </div>
+
+  <!-- CALC BOX -->
+  <div class="calc-box">
+    <div class="calc-box-title">⚡ Tính toán tự động</div>
+    <div class="form-grid" style="margin-bottom:0">
+      <div class="form-group"><label>Pip SL</label><input type="text" id="f-pip-sl" readonly style="color:var(--red);font-weight:600"/></div>
+      <div class="form-group"><label>Pip TP</label><input type="text" id="f-pip-tp" readonly style="color:var(--green);font-weight:600"/></div>
+      <div class="form-group"><label>Lot khuyến nghị</label><input type="text" id="f-lot" readonly style="color:var(--cyan);font-weight:600"/></div>
+      <div class="form-group"><label>RR lệnh</label><input type="text" id="f-rr" readonly style="color:var(--orange);font-weight:600"/></div>
+        <div class="form-group"><label>Sizing ($)</label><input type="text" id="f-sizing-display" readonly style="color:var(--yellow)"/></div>
+      <div class="form-group"><label>PnL ước tính / thực tế</label><input type="text" id="f-pnl-est" readonly style="color:var(--purple);font-weight:600"/></div>
+      <div class="form-group">
+        <label>⏱ Thời gian nắm giữ</label>
+        <input type="text" id="f-hold-display" readonly style="color:var(--cyan);font-weight:700;font-size:14px;letter-spacing:.03em"/>
+      </div>
+    </div>
+    <div style="font-size:10px;color:var(--dim);margin-top:8px">PnL & RR chuyển sang thực tế khi có giá đóng • Lot theo pip SL và sizing vốn hiện tại • TG giữ cập nhật realtime</div>
+  </div>
+
+  <!-- CHECKLIST 8 BƯỚC -->
+  <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">✅ Checklist Bát Đại Đầu Tư – 8 bước MAXS</div>
+  <div class="checklist" id="bat-dai-checklist">
+    <div class="check-item" onclick="toggleCheck(this,0)">
+      <div class="check-dot"></div>
+      <div class="check-label"><b>B1 – Xu hướng tổng thể</b><br><span style="color:var(--dim);font-size:10px">Monthly/Weekly/Daily aligned</span></div>
+      <span class="check-status" style="color:var(--dim)">Chưa</span>
+    </div>
+    <div class="check-item" onclick="toggleCheck(this,1)">
+      <div class="check-dot"></div>
+      <div class="check-label"><b>B2 – Xác định sóng</b><br><span style="color:var(--dim);font-size:10px">Wave phase hiện tại</span></div>
+      <span class="check-status" style="color:var(--dim)">Chưa</span>
+    </div>
+    <div class="check-item" onclick="toggleCheck(this,2)">
+      <div class="check-dot"></div>
+      <div class="check-label"><b>B3 – Biên độ hồi (Fibo)</b><br><span style="color:var(--dim);font-size:10px">0.236/0.382/0.5/0.618 – hồi sâu/nông</span></div>
+      <span class="check-status" style="color:var(--dim)">Chưa</span>
+    </div>
+    <div class="check-item" onclick="toggleCheck(this,3)">
+      <div class="check-dot"></div>
+      <div class="check-label"><b>B4 – Thời gian hồi</b><br><span style="color:var(--dim);font-size:10px">Time Fibo – hồi ít/hồi nhiều</span></div>
+      <span class="check-status" style="color:var(--dim)">Chưa</span>
+    </div>
+    <div class="check-item" onclick="toggleCheck(this,4)">
+      <div class="check-dot"></div>
+      <div class="check-label"><b>B5 – Nhịp 3–4 hình thành</b><br><span style="color:var(--dim);font-size:10px">Nhịp xác nhận đủ điều kiện</span></div>
+      <span class="check-status" style="color:var(--dim)">Chưa</span>
+    </div>
+    <div class="check-item" onclick="toggleCheck(this,5)">
+      <div class="check-dot"></div>
+      <div class="check-label"><b>B6 – Nến đảo chiều + HA/MA10W</b><br><span style="color:var(--dim);font-size:10px">Signal xác nhận đảo chiều</span></div>
+      <span class="check-status" style="color:var(--dim)">Chưa</span>
+    </div>
+    <div class="check-item" onclick="toggleCheck(this,6)">
+      <div class="check-dot"></div>
+      <div class="check-label"><b>B7 – MACD + Stochastic align</b><br><span style="color:var(--dim);font-size:10px">Daily / 4H / 1H đồng thuận</span></div>
+      <span class="check-status" style="color:var(--dim)">Chưa</span>
+    </div>
+    <div class="check-item" onclick="toggleCheck(this,7)">
+      <div class="check-dot"></div>
+      <div class="check-label"><b>B8 – Quản trị vốn xác nhận</b><br><span style="color:var(--dim);font-size:10px">Sizing 6% hoặc 10% theo streak</span></div>
+      <span class="check-status" style="color:var(--dim)">Chưa</span>
+    </div>
+  </div>
+
+  <div class="form-group" style="margin-bottom:14px">
+    <label>Ghi chú lệnh</label>
+    <textarea id="f-note" rows="2" placeholder="Ghi chú thêm..."></textarea>
+  </div>
+
+  <input type="hidden" id="f-edit-id"/>
+  <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+    <button class="btn" onclick="closeTradeModal()">Huỷ</button>
+    <button class="btn btn-primary" onclick="saveTrade(false)">💾 Lưu lệnh</button>
+    <button class="btn btn-orange" onclick="saveTrade(true)">💾 Lưu & Đúc kết →</button>
+  </div>
+</div>
+</div>
+
+<!-- MODAL: NẠP / RÚT VỐN -->
+<div class="modal-bg" id="cap-modal">
+<div class="modal" style="max-width:440px">
+  <div class="modal-header">
+    <div class="modal-title">💰 Nạp / Rút vốn</div>
+    <button class="modal-close" onclick="closeCapModal()">✕</button>
+  </div>
+  <div class="form-grid" style="grid-template-columns:1fr 1fr">
+    <div class="form-group">
+      <label>Loại</label>
+      <select id="cap-type">
+        <option value="deposit">Nạp thêm</option>
+        <option value="withdraw">Rút vốn</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Ngày</label>
+      <input type="date" id="cap-date"/>
+    </div>
+  </div>
+  <div class="form-group" style="margin-bottom:10px">
+    <label>Số tiền (USD)</label>
+    <input type="number" id="cap-amount" placeholder="0.00" step="any"/>
+  </div>
+  <div class="form-group" style="margin-bottom:14px">
+    <label>Ghi chú</label>
+    <input type="text" id="cap-note" placeholder="Lý do nạp/rút..."/>
+  </div>
+  <div style="display:flex;gap:8px;justify-content:flex-end">
+    <button class="btn" onclick="closeCapModal()">Huỷ</button>
+    <button class="btn btn-primary" onclick="saveCapAction()">💾 Xác nhận</button>
+  </div>
+</div>
+</div>
+
+<!-- MODAL: ĐÚC KẾT BÀI HỌC -->
+<div class="modal-bg" id="lesson-modal">
+<div class="modal">
+  <div class="modal-header">
+    <div class="modal-title" id="lesson-modal-title">📝 Đúc kết bài học</div>
+    <button class="modal-close" onclick="closeLessonModal()">✕</button>
+  </div>
+
+  <!-- Trade Summary (shown when linked) -->
+  <div id="lesson-trade-summary" style="display:none" class="trade-summary-box">
+    <div class="trade-summary-title">📋 Cấu trúc lệnh gắn kết</div>
+    <div class="trade-summary-grid" id="lesson-trade-summary-grid"></div>
+  </div>
+
+  <div class="form-grid">
+    <div class="form-group"><label>Ngày</label><input type="date" id="l-date"/></div>
+    <div class="form-group">
+      <label>Mã liên quan</label>
+      <select id="l-symbol">
+        <option value="">-- Không gắn mã --</option>
+        <option>BTCUSD</option><option>ETHUSD</option><option>XAUUSD</option><option>USOILUSD</option><option>XAGUSD</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Kết quả lệnh</label>
+      <select id="l-outcome">
+        <option value="">-- Không xác định --</option>
+        <option>Chốt lời</option><option>Cắt lỗ</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Phân loại</label>
+      <select id="l-cat">
+        <option>Tâm lý</option><option>Kỹ thuật</option><option>Kỷ luật</option><option>Vốn</option><option>Chiến lược</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Mức độ (sao)</label>
+      <select id="l-stars">
+        <option value="1">⭐ 1 sao</option><option value="2">⭐⭐ 2 sao</option>
+        <option value="3">⭐⭐⭐ 3 sao</option><option value="4">⭐⭐⭐⭐ 4 sao</option>
+        <option value="5" selected>⭐⭐⭐⭐⭐ 5 sao</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-group" style="margin-bottom:10px"><label>🚀 Tiêu đề</label><input type="text" id="l-title" placeholder="Tiêu đề ngắn gọn..."/></div>
+  <div class="form-group" style="margin-bottom:10px"><label>📋 Tình huống</label><textarea id="l-situation" rows="2" placeholder="Mô tả tình huống cụ thể..."></textarea></div>
+  <div class="form-group" style="margin-bottom:10px"><label>❌ Sai lầm</label><textarea id="l-mistake" rows="2" placeholder="Sai lầm nếu có, hoặc 'Không có sai lầm'..."></textarea></div>
+  <div class="form-group" style="margin-bottom:10px"><label>💡 Bài học</label><textarea id="l-lesson" rows="2" placeholder="Bài học rút ra..."></textarea></div>
+  <div class="form-group" style="margin-bottom:14px"><label>🎯 Hành động</label><textarea id="l-action" rows="2" placeholder="Hành động cụ thể sẽ làm..."></textarea></div>
+  <input type="hidden" id="l-edit-id"/>
+  <input type="hidden" id="l-trade-id"/>
+  <div style="display:flex;gap:8px;justify-content:flex-end">
+    <button class="btn" onclick="closeLessonModal()">Huỷ</button>
+    <button class="btn btn-primary" onclick="saveLesson()">💾 Lưu đúc kết</button>
+  </div>
+</div>
+</div>
+
+<script>
+// ─── PASSWORD ─────────────────────────────────────────────────────────────────
+// Đổi mật khẩu tại đây ↓
+const PASS_HASH = 'a65499f21205e077aaf13d01fe378af4f1224b75'; // mặc định: maxs2025
+// Để đổi pass: chạy sha1("mật-khẩu-mới") tại: https://emn178.github.io/online-tools/sha1.html
+
+async function sha1(str) {
+  const buf = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function doLogin() {
+  const input = document.getElementById('login-pass').value;
+  const err = document.getElementById('login-err');
+  if (!input) { err.textContent = 'Vui lòng nhập mật khẩu'; return; }
+  const h = await sha1(input);
+  if (h === PASS_HASH) {
+    sessionStorage.setItem('maxs_auth', '1');
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('login-pass').value = '';
+    err.textContent = '';
+  } else {
+    err.textContent = '❌ Mật khẩu không đúng, thử lại';
+    document.getElementById('login-pass').value = '';
+    document.getElementById('login-pass').focus();
+  }
+}
+
+function checkAuth() {
+  if (sessionStorage.getItem('maxs_auth') === '1') {
+    document.getElementById('login-screen').style.display = 'none';
+  } else {
+    document.getElementById('login-screen').style.display = 'flex';
+    setTimeout(() => document.getElementById('login-pass').focus(), 100);
+  }
+}
+
+// ─── PIP SPECS ────────────────────────────────────────────────────────────────
+const PIP_SPECS = {
+  BTCUSD:   { pip:1.0,   pipVal:1,  minLot:0.01, formula:'CRT'  },
+  ETHUSD:   { pip:0.01,  pipVal:1,  minLot:0.01, formula:'CRT'  },
+  XAUUSD:   { pip:0.1,   pipVal:10, minLot:0.01, formula:'GOLD' },
+  USOILUSD: { pip:0.01,  pipVal:10, minLot:0.1,  formula:'CRT'  },
+  XAGUSD:   { pip:0.01,  pipVal:50, minLot:0.01, formula:'SILVER'},
+};
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let state = {
+  initCap: 18000,
+  currentCap: 18000,
+  usdvnd: 25400,
+  trades: [],
+  lessons: [],
+  capLog: [],
+  equityLog: []
+};
+let currentChecks = [0,0,0,0,0,0,0,0];
+let hideClosed = false;
+let modalHoldTimer = null; // realtime timer cho modal
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+window.onload = () => {
+  checkAuth();
+  loadFromStorage();
+  fetchUsdVnd();
+  renderAll();
+  document.getElementById('f-open').value = new Date().toISOString().slice(0,16);
+  document.getElementById('l-date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('cap-date').value = new Date().toISOString().slice(0,10);
+};
+
+function loadFromStorage() {
+  const s = localStorage.getItem('maxs_journal_v2');
+  if (s) { try { Object.assign(state, JSON.parse(s)); } catch(e){} }
+}
+function saveToStorage() { localStorage.setItem('maxs_journal_v2', JSON.stringify(state)); }
+
+async function fetchUsdVnd() {
+  try {
+    const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=vnd');
+    const d = await r.json();
+    if (d.tether && d.tether.vnd) state.usdvnd = d.tether.vnd;
+  } catch(e) {}
+  document.getElementById('usdvnd-rate').textContent = 'USD/VND: ' + Math.round(state.usdvnd).toLocaleString('vi-VN');
+  renderDashboard();
+}
+
+// ─── NAV ──────────────────────────────────────────────────────────────────────
+function showPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  if (el) el.classList.add('active');
+  else document.getElementById('tab-' + id).classList.add('active');
+}
+
+// ─── RENDER ALL ───────────────────────────────────────────────────────────────
+function renderAll() {
+  recalcCurrentCap();
+  renderDashboard();
+  renderTrades();
+  renderLessons();
+}
+
+function updateInitCap() {
+  state.initCap = parseFloat(document.getElementById('init-cap').value) || 18000;
+  recalcCurrentCap();
+  saveToStorage();
+  renderDashboard();
+}
+
+function recalcCurrentCap() {
+  let cap = state.initCap;
+  // add deposits, subtract withdrawals
+  (state.capLog || []).forEach(c => {
+    cap += c.type === 'deposit' ? c.amount : -c.amount;
+  });
+  // add/subtract closed PnL
+  const closed = state.trades.filter(t => t.status === 'Chốt lời' || t.status === 'Cắt lỗ')
+    .sort((a,b) => (a.openTime||0) - (b.openTime||0));
+  state.equityLog = [{t: state.initCap, v: state.initCap}];
+  let running = state.initCap;
+  // apply capital actions in order
+  for (const c of (state.capLog || [])) {
+    running += c.type === 'deposit' ? c.amount : -c.amount;
+  }
+  // reset to just initCap for equity
+  running = state.initCap;
+  for (const t of closed) { running += (t.pnlUsd || 0); state.equityLog.push({t: t.closeTime || Date.now(), v: running}); }
+  state.currentCap = cap + closed.reduce((s,t) => s + (t.pnlUsd||0), 0);
+}
+
+// ─── SIZING ───────────────────────────────────────────────────────────────────
+function getSizingMode() {
+  const closed10 = state.trades.filter(t => t.status === 'Chốt lời' || t.status === 'Cắt lỗ').slice(-10);
+  if (closed10.length >= 10) {
+    const wins = closed10.filter(t => t.status === 'Chốt lời').length;
+    const avgRR = closed10.reduce((s,t) => s + (t.rr||0), 0) / 10;
+    if (wins / 10 >= 0.7 && avgRR >= 2) return 10;
+  }
+  return 6;
+}
+
+function getSizingUsd() {
+  const mode = getSizingMode();
+  let effective = state.currentCap;
+  state.trades.filter(t => t.status === 'Đang mở' || t.status === 'Đã dời về 0' || t.status === 'Đã dời về dương')
+    .forEach(t => { effective -= (t.sizingUsd || 0); });
+  return Math.max(0, effective) * mode / 100;
+}
+
+function getStreak() {
+  const closed = state.trades.filter(t => t.status === 'Chốt lời' || t.status === 'Cắt lỗ')
+    .sort((a,b) => (b.openTime||0) - (a.openTime||0));
+  if (!closed.length) return {n:0, type:'none'};
+  const first = closed[0].status; let n = 0;
+  for (const t of closed) { if (t.status === first) n++; else break; }
+  return {n, type: first === 'Chốt lời' ? 'win' : 'loss'};
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+function renderDashboard() {
+  const vnd = state.usdvnd;
+  const cap = state.currentCap;
+  document.getElementById('cap-display').textContent = '$' + cap.toFixed(2);
+  document.getElementById('cap-vnd').textContent = '≈ ' + Math.round(cap * vnd).toLocaleString('vi-VN') + ' ₫';
+  document.getElementById('init-cap').value = state.initCap;
+
+  const mode = getSizingMode();
+  const sUsd = getSizingUsd();
+  const modeEl = document.getElementById('sizing-mode-display');
+  modeEl.textContent = mode + '% / lệnh';
+  modeEl.className = 'mode-tag ' + (mode === 10 ? 'mode-10' : 'mode-6');
+  document.getElementById('sizing-usd').textContent = '= $' + sUsd.toFixed(2);
+
+  const streak = getStreak();
+  const sEl = document.getElementById('streak-display');
+  if (!streak.n) { sEl.textContent = '--'; sEl.style.color = 'var(--dim)'; }
+  else if (streak.type === 'win') { sEl.textContent = '+' + streak.n + 'W'; sEl.style.color = 'var(--green)'; }
+  else { sEl.textContent = '-' + streak.n + 'L'; sEl.style.color = 'var(--red)'; }
+  document.getElementById('streak-sub').textContent = !streak.n ? 'chờ dữ liệu' : (streak.type === 'win' ? 'streak thắng' : 'streak thua');
+
+  // Cap log totals
+  const deps = (state.capLog||[]).filter(c=>c.type==='deposit').reduce((s,c)=>s+c.amount,0);
+  const wits = (state.capLog||[]).filter(c=>c.type==='withdraw').reduce((s,c)=>s+c.amount,0);
+  document.getElementById('total-deposit').textContent = '+$' + deps.toFixed(2);
+  document.getElementById('total-withdraw').textContent = '-$' + wits.toFixed(2);
+
+  // KPIs
+  const closed = state.trades.filter(t => t.status === 'Chốt lời' || t.status === 'Cắt lỗ');
+  const wins = closed.filter(t => t.status === 'Chốt lời');
+  const wr = closed.length ? (wins.length / closed.length * 100) : 0;
+  const avgRR = closed.length ? (closed.reduce((s,t) => s + (t.rr||0), 0) / closed.length) : 0;
+  const totalPnl = state.trades.reduce((s,t) => s + (t.pnlUsd||0), 0);
+  const compound = state.initCap > 0 ? ((state.currentCap - state.initCap) / state.initCap * 100) : 0;
+  const openCount = state.trades.filter(t => !['Chốt lời','Cắt lỗ'].includes(t.status)).length;
+
+  document.getElementById('kpi-wr').textContent = wr.toFixed(1) + '%';
+  document.getElementById('kpi-wr').className = 'kpi-val ' + (wr >= 50 ? 'green' : 'red');
+  document.getElementById('kpi-wl').textContent = wins.length + 'W / ' + (closed.length - wins.length) + 'L';
+  document.getElementById('kpi-rr').textContent = avgRR > 0 ? '1 : ' + avgRR.toFixed(2) : '--';
+  const pEl = document.getElementById('kpi-pnl');
+  pEl.textContent = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(2);
+  pEl.className = 'kpi-val ' + (totalPnl >= 0 ? 'green' : 'red');
+  document.getElementById('kpi-pnl-vnd').textContent = '≈ ' + Math.round(totalPnl * vnd).toLocaleString('vi-VN') + ' ₫';
+  document.getElementById('kpi-compound').textContent = (compound >= 0 ? '+' : '') + compound.toFixed(2) + '%';
+  document.getElementById('kpi-compound').className = 'kpi-val ' + (compound >= 0 ? 'cyan' : 'red');
+  document.getElementById('kpi-total').textContent = state.trades.length;
+  document.getElementById('kpi-open').textContent = openCount + ' đang mở';
+
+  const closedT = closed.filter(t => t.openTime && t.closeTime);
+  document.getElementById('kpi-holdtime').textContent = closedT.length
+    ? fmtHold(closedT.reduce((s,t) => s + (t.closeTime - t.openTime), 0) / closedT.length) : '--';
+
+  renderEquity();
+  renderCoinStats();
+  renderCapLog();
+}
+
+function renderEquity() {
+  const svg = document.getElementById('equity-svg');
+  const log = state.equityLog;
+  if (log.length < 2) { svg.innerHTML = '<text x="400" y="60" text-anchor="middle" fill="#334155" font-size="13">Chưa có dữ liệu lệnh đóng</text>'; return; }
+  const vals = log.map(l => l.v);
+  const mn = Math.min(...vals), mx = Math.max(...vals), range = mx - mn || 1;
+  const W = 800, H = 100, pd = 8;
+  const pts = log.map((l,i) => [pd + i/(log.length-1)*(W-pd*2), H-pd - (l.v-mn)/range*(H-pd*2)]);
+  const path = 'M' + pts.map(p => p[0].toFixed(1)+','+p[1].toFixed(1)).join(' L');
+  const area = path + ' L'+pts[pts.length-1][0]+','+H+' L'+pts[0][0]+','+H+' Z';
+  const color = vals[vals.length-1] >= vals[0] ? '#10b981' : '#ef4444';
+  svg.innerHTML = `<defs><linearGradient id="eg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${color}" stop-opacity="0.3"/><stop offset="100%" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
+    <path d="${area}" fill="url(#eg)"/>
+    <path d="${path}" fill="none" stroke="${color}" stroke-width="2.5"/>
+    <circle cx="${pts[pts.length-1][0]}" cy="${pts[pts.length-1][1]}" r="4" fill="${color}"/>
+    <text x="${Math.min(pts[pts.length-1][0]-4,750)}" y="${Math.max(pts[pts.length-1][1]-6,14)}" fill="${color}" font-size="11" text-anchor="end">$${vals[vals.length-1].toFixed(0)}</text>`;
+  document.getElementById('eq-start').textContent = '$' + vals[0].toFixed(0);
+  document.getElementById('eq-end').textContent = '$' + vals[vals.length-1].toFixed(0);
+}
+
+function renderCoinStats() {
+  const syms = ['BTCUSD','ETHUSD','XAUUSD','USOILUSD','XAGUSD'];
+  const colors = {BTCUSD:'#f7931a',ETHUSD:'#627eea',XAUUSD:'#f59e0b',USOILUSD:'#10b981',XAGUSD:'#94a3b8'};
+  const closed = state.trades.filter(t => t.status === 'Chốt lời' || t.status === 'Cắt lỗ');
+  const active = syms.filter(s => closed.some(t => t.symbol === s));
+  const grid = document.getElementById('coin-stats-grid');
+  if (!active.length) { grid.innerHTML = '<div class="empty"><div class="empty-icon">📉</div>Chưa có lệnh đóng</div>'; return; }
+  grid.innerHTML = active.map(sym => {
+    const ts = closed.filter(t => t.symbol === sym);
+    const w = ts.filter(t => t.status === 'Chốt lời');
+    const wr = ts.length ? (w.length / ts.length * 100).toFixed(1) : 0;
+    const avgRR = ts.length ? (ts.reduce((s,t) => s + (t.rr||0), 0) / ts.length).toFixed(2) : 0;
+    const pnl = ts.reduce((s,t) => s + (t.pnlUsd||0), 0);
+    return `<div class="coin-card">
+      <div class="coin-name" style="color:${colors[sym]}">${sym}</div>
+      <div class="coin-row"><span>Win Rate</span><span style="color:${wr>=50?'var(--green)':'var(--red)'}">${wr}%</span></div>
+      <div class="coin-row"><span>Avg RR</span><span style="color:var(--orange)">1:${avgRR}</span></div>
+      <div class="coin-row"><span>Lệnh</span><span>${ts.length} (${w.length}W/${ts.length-w.length}L)</span></div>
+      <div class="coin-row"><span>PnL</span><span style="color:${pnl>=0?'var(--green)':'var(--red)'}">${pnl>=0?'+':''}$${pnl.toFixed(2)}</span></div>
+    </div>`;
+  }).join('');
+}
+
+function renderCapLog() {
+  const tbody = document.getElementById('cap-log-tbody');
+  const log = (state.capLog||[]).slice().reverse();
+  if (!log.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">Chưa có giao dịch vốn</td></tr>'; return; }
+  tbody.innerHTML = log.map(c => `<tr>
+    <td>${c.date}</td>
+    <td><span class="badge ${c.type==='deposit'?'badge-win':'badge-loss'}">${c.type==='deposit'?'Nạp thêm':'Rút vốn'}</span></td>
+    <td style="color:${c.type==='deposit'?'var(--green)':'var(--yellow)'}; font-weight:600">${c.type==='deposit'?'+':'-'}$${c.amount.toFixed(2)}</td>
+    <td style="color:var(--muted)">${c.note||''}</td>
+    <td><button class="btn btn-sm btn-danger" onclick="deleteCapLog('${c.id}')">🗑</button></td>
+  </tr>`).join('');
+}
+
+// ─── CAP MODAL ────────────────────────────────────────────────────────────────
+function openCapModal() { document.getElementById('cap-modal').classList.add('open'); }
+function closeCapModal() { document.getElementById('cap-modal').classList.remove('open'); }
+function saveCapAction() {
+  const type = document.getElementById('cap-type').value;
+  const amount = parseFloat(document.getElementById('cap-amount').value);
+  if (!amount || amount <= 0) { alert('Nhập số tiền hợp lệ'); return; }
+  if (!state.capLog) state.capLog = [];
+  state.capLog.push({
+    id: Date.now().toString(), type, amount,
+    date: document.getElementById('cap-date').value,
+    note: document.getElementById('cap-note').value
+  });
+  document.getElementById('cap-amount').value = '';
+  document.getElementById('cap-note').value = '';
+  closeCapModal();
+  recalcCurrentCap();
+  saveToStorage();
+  renderDashboard();
+}
+function deleteCapLog(id) {
+  if (!confirm('Xoá giao dịch vốn này?')) return;
+  state.capLog = (state.capLog||[]).filter(c => c.id !== id);
+  recalcCurrentCap(); saveToStorage(); renderDashboard();
+}
+
+// ─── TRADES ───────────────────────────────────────────────────────────────────
+function renderTrades() {
+  const fSym = document.getElementById('filter-symbol').value;
+  const fSt = document.getElementById('filter-status').value;
+  let trades = [...state.trades].sort((a,b) => (b.openTime||0) - (a.openTime||0));
+  if (fSym) trades = trades.filter(t => t.symbol === fSym);
+  if (fSt) trades = trades.filter(t => t.status === fSt);
+  if (hideClosed) trades = trades.filter(t => !['Chốt lời','Cắt lỗ'].includes(t.status));
+  document.getElementById('toggle-hide-btn').textContent = hideClosed ? 'Hiện lệnh đóng' : 'Ẩn lệnh đóng';
+  const tbody = document.getElementById('trades-tbody');
+  if (!trades.length) { tbody.innerHTML = '<tr><td colspan="18" class="empty"><div class="empty-icon">📋</div>Không có lệnh nào</td></tr>'; return; }
+  const orderBadge = {
+    'Buy Limit':'badge-bl','Sell Limit':'badge-sl','Buy Stop':'badge-bs','Sell Stop':'badge-ss'
+  };
+  const statusBadge = {
+    'Chờ lệnh':'badge-wait','Đang mở':'badge-open','Đã dời về 0':'badge-be',
+    'Đã dời về dương':'badge-plus','Chốt lời':'badge-win','Cắt lỗ':'badge-loss'
+  };
+  tbody.innerHTML = trades.map((t,i) => {
+    const pnlC = (t.pnlUsd||0) >= 0 ? 'var(--green)' : 'var(--red)';
+    const pnlVnd = Math.round((t.pnlUsd||0) * state.usdvnd);
+    const holdStr = (t.openTime && t.closeTime)
+      ? fmtHold(t.closeTime - t.openTime)
+      : t.openTime
+        ? `<span class="rt-timer blink" data-open="${t.openTime}">⏳ --</span>`
+        : '--';
+    const checks = t.checks || [0,0,0,0,0,0,0,0];
+    const passC = checks.filter(c => c === 1).length;
+    const checkB = passC === 8 ? `<span class="badge badge-win">✅ 8/8</span>`
+      : `<span class="badge badge-wait" style="color:${passC>=6?'var(--yellow)':'var(--dim)'}">${passC}/8</span>`;
+    const stratB = t.strat === 'Fibo chuỗi' ? 'badge-fibo' : t.strat === 'Breakout (BO)' ? 'badge-bo' : 'badge-ma';
+    const rrStr = t.rrActual != null ? `<span style="color:var(--orange);font-weight:700">1:${t.rrActual.toFixed(2)}</span><span style="font-size:9px;color:var(--dim)"> (thực)</span>`
+      : t.rr ? `<span style="color:var(--muted)">1:${t.rr.toFixed(2)}</span><span style="font-size:9px;color:var(--dim)"> (TP)</span>` : '--';
+    const pnlStr = t.pnlActual != null ? `<span style="font-weight:700">${t.pnlActual>=0?'+':''}$${t.pnlActual.toFixed(2)}</span><span style="font-size:9px;color:var(--dim)"> (thực)</span>`
+      : t.pnlUsd != null ? `${t.pnlUsd>=0?'+':''}$${t.pnlUsd.toFixed(2)}` : '--';
+    const closePriceStr = t.closePrice ? `$${t.closePrice}` : '--';
+    const isClosed = ['Chốt lời','Cắt lỗ'].includes(t.status);
+    const isHidden = t.hidden === true;
+    const canClose = ['Đang mở','Đã dời về 0','Đã dời về dương'].includes(t.status);
+    const hasLesson = state.lessons.some(l => l.tradeId === t.id);
+    const tid = t.id;
+    return `<tr style="${isHidden ? 'opacity:0.35' : ''}">
+      <td style="color:var(--dim)">${state.trades.length - state.trades.indexOf(t)}</td>
+      <td style="font-weight:700">${t.symbol}</td>
+      <td><span class="badge ${orderBadge[t.ordertype]||'badge-wait'}">${t.ordertype||t.dir||'--'}</span></td>
+      <td><span class="badge ${stratB}">${t.strat||'--'}</span></td>
+      <td>${t.entry ? '$'+t.entry : '--'}</td>
+      <td style="color:var(--red)">${t.sl ? '$'+t.sl : '--'}</td>
+      <td style="color:var(--green)">${t.tp ? '$'+t.tp : '--'}</td>
+      <td style="color:var(--yellow)">${closePriceStr}</td>
+      <td style="color:var(--red)">${t.pipSl != null ? t.pipSl.toFixed(1) : '--'}</td>
+      <td style="color:var(--green)">${t.pipTp != null ? t.pipTp.toFixed(1) : '--'}</td>
+      <td style="color:var(--cyan)">${t.lot != null ? t.lot.toFixed(2) : '--'}</td>
+      <td>${rrStr}</td>
+      <td style="color:${pnlC};font-weight:600">${pnlStr}</td>
+      <td style="color:${pnlC};font-size:10px">${t.pnlUsd != null ? (pnlVnd>=0?'+':'')+pnlVnd.toLocaleString('vi-VN')+'₫' : '--'}</td>
+      <td class="hold-time">${holdStr}</td>
+      <td><span class="badge ${statusBadge[t.status]||'badge-wait'}">${t.status}</span></td>
+      <td>${checkB}</td>
+      <td>
+        <div style="display:flex;gap:3px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-sm act-edit" data-id="${tid}" title="Sửa lệnh">✏️</button>
+          <button class="btn btn-sm btn-danger act-del" data-id="${tid}" title="Xoá lệnh">🗑</button>
+          ${canClose ? `
+          <button class="btn btn-sm btn-green act-win" data-id="${tid}" title="Chốt lời">✅</button>
+          <button class="btn btn-sm btn-red act-loss" data-id="${tid}" title="Cắt lỗ">❌</button>` : ''}
+          <button class="btn btn-sm ${hasLesson?'btn-orange':'btn-cyan'} act-lesson" data-id="${tid}" title="Đúc kết">📝</button>
+          ${isClosed ? `<button class="btn btn-sm act-hide" data-id="${tid}" title="${isHidden?'Hiện lệnh':'Ẩn lệnh'}" style="opacity:0.7">${isHidden?'👁':'🙈'}</button>` : ''}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function toggleHideClosed() { hideClosed = !hideClosed; renderTrades(); }
+
+// Event delegation — tất cả nút trong bảng lệnh dùng chung 1 listener
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('trades-tbody').addEventListener('click', function(e) {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const id = btn.getAttribute('data-id');
+    if (!id) return;
+    if (btn.classList.contains('act-edit'))   editTrade(id);
+    if (btn.classList.contains('act-del'))    deleteTrade(id);
+    if (btn.classList.contains('act-win'))    quickClose(id, 'Chốt lời');
+    if (btn.classList.contains('act-loss'))   quickClose(id, 'Cắt lỗ');
+    if (btn.classList.contains('act-lesson')) openLessonForTrade(id);
+    if (btn.classList.contains('act-hide'))   toggleHideTrade(id);
+  });
+});
+
+// ─── TRADE MODAL ──────────────────────────────────────────────────────────────
+function openTradeModal(editId) {
+  currentChecks = [0,0,0,0,0,0,0,0];
+  document.getElementById('f-edit-id').value = editId || '';
+  document.getElementById('trade-modal-title').textContent = editId ? '✏️ Sửa lệnh' : '➕ Thêm lệnh mới';
+  if (!editId) {
+    ['f-symbol','f-ordertype','f-strat','f-status'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.selectedIndex = 0;
+    });
+    document.getElementById('f-entry').value = '';
+    document.getElementById('f-sl').value = '';
+    document.getElementById('f-tp').value = '';
+    document.getElementById('f-close-price').value = '';
+    document.getElementById('f-note').value = '';
+    document.getElementById('f-open').value = new Date().toISOString().slice(0,16);
+    document.getElementById('f-close').value = '';
+  }
+  resetCheckUI();
+  calcLot();
+  stopModalHoldTimer();
+  // Nếu tạo mới, thời gian tính từ lúc mở modal (chưa có openTime thực)
+  const openVal = document.getElementById('f-open').value;
+  if (openVal) startModalHoldTimer(new Date(openVal).getTime());
+  document.getElementById('trade-modal').classList.add('open');
+}
+
+function editTrade(id) {
+  const t = state.trades.find(x => x.id === id);
+  if (!t) return;
+  openTradeModal(id);
+  document.getElementById('f-symbol').value = t.symbol;
+  // handle old 'dir' field
+  const ot = t.ordertype || (t.dir === 'Buy' ? 'Buy Limit' : 'Sell Limit');
+  document.getElementById('f-ordertype').value = ot;
+  document.getElementById('f-strat').value = t.strat || 'Fibo chuỗi';
+  document.getElementById('f-status').value = t.status;
+  document.getElementById('f-entry').value = t.entry || '';
+  document.getElementById('f-sl').value = t.sl || '';
+  document.getElementById('f-tp').value = t.tp || '';
+  document.getElementById('f-close-price').value = t.closePrice || '';
+  document.getElementById('f-note').value = t.note || '';
+  if (t.openTime) document.getElementById('f-open').value = new Date(t.openTime).toISOString().slice(0,16);
+  if (t.closeTime) document.getElementById('f-close').value = new Date(t.closeTime).toISOString().slice(0,16);
+  currentChecks = t.checks ? [...t.checks] : [0,0,0,0,0,0,0,0];
+  resetCheckUI();
+  document.querySelectorAll('#bat-dai-checklist .check-item').forEach((item,i) => {
+    const v = currentChecks[i];
+    if (v === 1) { item.classList.add('ok'); item.querySelector('.check-status').textContent='Đạt'; item.querySelector('.check-status').style.color='var(--green)'; }
+    else if (v === -1) { item.classList.add('fail'); item.querySelector('.check-status').textContent='Không'; item.querySelector('.check-status').style.color='var(--red)'; }
+  });
+  calcLot();
+  // Start/stop hold timer tuỳ trạng thái lệnh
+  const holdEl = document.getElementById('f-hold-display');
+  if (t.openTime && t.closeTime) {
+    // Lệnh đã đóng → hiện tĩnh tổng thời gian
+    const ms = t.closeTime - t.openTime;
+    if (holdEl) { holdEl.value = '✅ ' + fmtHoldLong(ms); holdEl.style.color = 'var(--muted)'; }
+    stopModalHoldTimer();
+  } else if (t.openTime) {
+    // Lệnh đang mở → realtime
+    startModalHoldTimer(t.openTime);
+  } else {
+    stopModalHoldTimer();
+  }
+}
+
+function onOpenTimeChange() {
+  const val = document.getElementById('f-open').value;
+  const closeVal = document.getElementById('f-close').value;
+  if (!val) { stopModalHoldTimer(); return; }
+  const openMs = new Date(val).getTime();
+  if (closeVal) {
+    // Đã đóng → tĩnh
+    const ms = new Date(closeVal).getTime() - openMs;
+    const holdEl = document.getElementById('f-hold-display');
+    if (holdEl) { holdEl.value = '✅ ' + fmtHoldLong(ms); holdEl.style.color = 'var(--muted)'; }
+    stopModalHoldTimer();
+  } else {
+    startModalHoldTimer(openMs);
+  }
+}
+
+function startModalHoldTimer(openTimeMs) {
+  stopModalHoldTimer();
+  const el = document.getElementById('f-hold-display');
+  if (!el) return;
+  function tick() {
+    const now = Date.now();
+    const ms = now - openTimeMs;
+    if (ms < 0) { el.value = '--'; return; }
+    const totalSec = Math.floor(ms / 1000);
+    const d = Math.floor(totalSec / 86400);
+    const h = Math.floor((totalSec % 86400) / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    let str = '';
+    if (d > 0) str = `${d} ngày ${h} giờ ${m} phút`;
+    else if (h > 0) str = `${h} giờ ${m} phút ${s} giây`;
+    else if (m > 0) str = `${m} phút ${s} giây`;
+    else str = `${s} giây`;
+    el.value = '⏱ ' + str;
+    // Màu theo thời gian: xanh < 1 ngày, vàng 1-3 ngày, cam > 3 ngày
+    el.style.color = d >= 3 ? 'var(--orange)' : d >= 1 ? 'var(--yellow)' : 'var(--cyan)';
+  }
+  tick();
+  modalHoldTimer = setInterval(tick, 1000);
+}
+
+function stopModalHoldTimer() {
+  if (modalHoldTimer) { clearInterval(modalHoldTimer); modalHoldTimer = null; }
+  const el = document.getElementById('f-hold-display');
+  if (el) { el.value = '--'; el.style.color = 'var(--dim)'; }
+}
+
+function closeTradeModal() {
+  stopModalHoldTimer();
+  document.getElementById('trade-modal').classList.remove('open');
+}
+
+function toggleCheck(el, idx) {
+  const cur = currentChecks[idx] || 0;
+  const st = el.querySelector('.check-status');
+  if (cur === 0) {
+    currentChecks[idx]=1; el.classList.add('ok'); el.classList.remove('fail');
+    st.textContent='Đạt'; st.style.color='var(--green)';
+  } else if (cur === 1) {
+    currentChecks[idx]=-1; el.classList.add('fail'); el.classList.remove('ok');
+    st.textContent='Không'; st.style.color='var(--red)';
+  } else {
+    currentChecks[idx]=0; el.classList.remove('ok','fail');
+    st.textContent='Chưa'; st.style.color='var(--dim)';
+  }
+}
+
+function resetCheckUI() {
+  document.querySelectorAll('#bat-dai-checklist .check-item').forEach((item,i) => {
+    item.classList.remove('ok','fail');
+    const st = item.querySelector('.check-status');
+    st.textContent='Chưa'; st.style.color='var(--dim)';
+    currentChecks[i]=0;
+  });
+}
+
+function calcLot() {
+  const sym = document.getElementById('f-symbol').value;
+  const entry = parseFloat(document.getElementById('f-entry').value);
+  const sl = parseFloat(document.getElementById('f-sl').value);
+  const tp = parseFloat(document.getElementById('f-tp').value);
+  const closePrice = parseFloat(document.getElementById('f-close-price').value);
+  const ordertype = document.getElementById('f-ordertype').value;
+  const spec = PIP_SPECS[sym] || PIP_SPECS['BTCUSD'];
+  const sizingUsd = getSizingUsd();
+  document.getElementById('f-sizing-display').value = '$' + sizingUsd.toFixed(2);
+
+  const isBuy = ordertype.includes('Buy');
+
+  if (!isNaN(entry) && !isNaN(sl) && sl > 0 && entry > 0) {
+    const priceDiffSl = Math.abs(entry - sl);
+    const pipSl = priceDiffSl / spec.pip;
+    document.getElementById('f-pip-sl').value = pipSl.toFixed(2) + ' pip';
+    // Lot formula
+    const lot = Math.max(spec.minLot, Math.floor((sizingUsd / (pipSl * spec.pipVal)) / spec.minLot) * spec.minLot);
+    document.getElementById('f-lot').value = lot.toFixed(2) + ' lot';
+
+    if (!isNaN(tp) && tp > 0) {
+      const pipTp = Math.abs(tp - entry) / spec.pip;
+      document.getElementById('f-pip-tp').value = pipTp.toFixed(2) + ' pip';
+      const rr = pipSl > 0 ? pipTp / pipSl : 0;
+
+      // If close price entered → show ACTUAL RR and PnL
+      if (!isNaN(closePrice) && closePrice > 0) {
+        const pDiff = isBuy ? (closePrice - entry) : (entry - closePrice);
+        const pipsActual = pDiff / spec.pip;
+        const pnlActual = pipsActual * spec.pipVal * lot;
+        const rrActual = pipSl > 0 ? Math.abs(pipsActual) / pipSl * (pipsActual >= 0 ? 1 : -1) : 0;
+        document.getElementById('f-rr').value = '1:' + Math.abs(rrActual).toFixed(2) + (rrActual >= 0 ? ' ✅ thực tế' : ' ❌ thực tế');
+        document.getElementById('f-pnl-est').value = (pnlActual >= 0 ? '+' : '') + '$' + pnlActual.toFixed(2) + ' (THỰC TẾ)';
+      } else {
+        document.getElementById('f-rr').value = '1:' + rr.toFixed(2) + ' (theo TP)';
+        const pnlTP = pipTp * spec.pipVal * lot;
+        document.getElementById('f-pnl-est').value = '+$' + pnlTP.toFixed(2) + ' (nếu TP)';
+      }
+    } else {
+      document.getElementById('f-pip-tp').value = '--';
+      document.getElementById('f-rr').value = '--';
+      document.getElementById('f-pnl-est').value = '--';
+    }
+  } else {
+    ['f-pip-sl','f-pip-tp','f-lot','f-rr','f-pnl-est'].forEach(id => document.getElementById(id).value = '--');
+  }
+}
+
+function saveTrade(goToLesson) {
+  const sym = document.getElementById('f-symbol').value;
+  const ordertype = document.getElementById('f-ordertype').value;
+  const strat = document.getElementById('f-strat').value;
+  const status = document.getElementById('f-status').value;
+  const entry = parseFloat(document.getElementById('f-entry').value) || null;
+  const sl = parseFloat(document.getElementById('f-sl').value) || null;
+  const tp = parseFloat(document.getElementById('f-tp').value) || null;
+  const closePrice = parseFloat(document.getElementById('f-close-price').value) || null;
+  const note = document.getElementById('f-note').value;
+  const openTime = document.getElementById('f-open').value ? new Date(document.getElementById('f-open').value).getTime() : null;
+  const closeTime = document.getElementById('f-close').value ? new Date(document.getElementById('f-close').value).getTime() : null;
+  const spec = PIP_SPECS[sym] || PIP_SPECS['BTCUSD'];
+  const sizingUsd = getSizingUsd();
+  const isBuy = ordertype.includes('Buy');
+  let pipSl, pipTp, lot, rr, pnlUsd, rrActual, pnlActual;
+
+  if (entry && sl) {
+    pipSl = Math.abs(entry - sl) / spec.pip;
+    lot = Math.max(spec.minLot, Math.floor((sizingUsd / (pipSl * spec.pipVal)) / spec.minLot) * spec.minLot);
+    if (tp) {
+      pipTp = Math.abs(tp - entry) / spec.pip;
+      rr = pipSl > 0 ? pipTp / pipSl : 0;
+    }
+    if (closePrice) {
+      const pDiff = isBuy ? (closePrice - entry) : (entry - closePrice);
+      const pipsA = pDiff / spec.pip;
+      pnlActual = pipsA * spec.pipVal * lot;
+      rrActual = pipSl > 0 ? pipsA / pipSl : 0;
+      pnlUsd = pnlActual;
+    } else if (status === 'Cắt lỗ') {
+      pnlUsd = -sizingUsd;
+    } else if (status === 'Chốt lời' && tp) {
+      pnlUsd = pipTp * spec.pipVal * lot;
+    }
+  }
+
+  const editId = document.getElementById('f-edit-id').value;
+  const tradeId = editId || Date.now().toString();
+  const tradeObj = { id: tradeId, symbol: sym, ordertype, strat, status, entry, sl, tp, closePrice, note, openTime, closeTime, checks: [...currentChecks], pipSl, pipTp, lot, rr, pnlUsd, rrActual, pnlActual: pnlActual != null ? pnlActual : undefined, sizingUsd };
+
+  if (editId) {
+    const idx = state.trades.findIndex(t => t.id === editId);
+    if (idx >= 0) state.trades[idx] = { ...state.trades[idx], ...tradeObj };
+  } else {
+    state.trades.push(tradeObj);
+  }
+
+  closeTradeModal();
+  recalcCurrentCap();
+  saveToStorage();
+  renderAll();
+
+  if (goToLesson) {
+    openLessonForTrade(tradeId);
+  }
+}
+
+function quickClose(id, outcome) {
+  const t = state.trades.find(x => x.id === id);
+  if (!t) return;
+  t.status = outcome;
+  if (!t.closeTime) t.closeTime = Date.now();
+  const spec = PIP_SPECS[t.symbol] || PIP_SPECS['BTCUSD'];
+  if (t.entry && t.sl) {
+    const isBuy = (t.ordertype||'').includes('Buy') || t.dir === 'Buy';
+    if (t.closePrice) {
+      const pDiff = isBuy ? (t.closePrice - t.entry) : (t.entry - t.closePrice);
+      const pipsA = pDiff / spec.pip;
+      t.pnlActual = pipsA * spec.pipVal * (t.lot || 0.01);
+      t.rrActual = (Math.abs(t.entry - t.sl) / spec.pip) > 0 ? pipsA / (Math.abs(t.entry - t.sl) / spec.pip) : 0;
+      t.pnlUsd = t.pnlActual;
+    } else if (outcome === 'Cắt lỗ') {
+      t.pnlUsd = -(t.sizingUsd || getSizingUsd());
+    } else if (outcome === 'Chốt lời' && t.tp) {
+      const pipTp = Math.abs(t.tp - t.entry) / spec.pip;
+      t.pnlUsd = pipTp * spec.pipVal * (t.lot || 0.01);
+    }
+  }
+  recalcCurrentCap(); saveToStorage(); renderAll();
+  // Auto-open lesson modal
+  openLessonForTrade(id);
+}
+
+function deleteTrade(id) {
+  if (!confirm('Xoá lệnh này? Hành động không thể hoàn tác.')) return;
+  state.trades = state.trades.filter(t => t.id !== id);
+  recalcCurrentCap(); saveToStorage(); renderAll();
+}
+
+function toggleHideTrade(id) {
+  const t = state.trades.find(x => x.id === id);
+  if (!t) return;
+  t.hidden = !t.hidden;
+  saveToStorage(); renderTrades();
+}
+
+// ─── LESSONS ──────────────────────────────────────────────────────────────────
+function openLessonForTrade(tradeId) {
+  const t = state.trades.find(x => x.id === tradeId);
+  // Check if lesson already exists for this trade
+  const existing = state.lessons.find(l => l.tradeId === tradeId);
+  if (existing) {
+    editLesson(existing.id);
+    return;
+  }
+  openLessonModal();
+  document.getElementById('l-trade-id').value = tradeId;
+  // Pre-fill from trade
+  if (t) {
+    document.getElementById('l-symbol').value = t.symbol;
+    document.getElementById('l-outcome').value = (t.status === 'Chốt lời' || t.status === 'Cắt lỗ') ? t.status : '';
+    document.getElementById('l-title').value = t.status === 'Chốt lời' ? 'Chốt lời đúng kế hoạch' : t.status === 'Cắt lỗ' ? 'Cắt lỗ đúng kỷ luật' : '';
+    document.getElementById('lesson-modal-title').textContent = '📝 Đúc kết: ' + t.symbol + ' #' + tradeId.slice(-4);
+    // Show trade summary
+    showTradeSummary(t);
+  }
+  // Navigate to lesson tab
+  showPage('lessons', document.getElementById('tab-lessons'));
+  document.getElementById('lesson-modal').classList.add('open');
+}
+
+function showTradeSummary(t) {
+  const box = document.getElementById('lesson-trade-summary');
+  const grid = document.getElementById('lesson-trade-summary-grid');
+  const pnlC = (t.pnlUsd||0) >= 0 ? 'var(--green)' : 'var(--red)';
+  const rrDisp = t.rrActual != null ? '1:' + Math.abs(t.rrActual).toFixed(2) + ' (T)' : (t.rr ? '1:' + t.rr.toFixed(2) + ' (P)' : '--');
+  const pnlDisp = t.pnlActual != null ? (t.pnlActual>=0?'+':'')+'$'+t.pnlActual.toFixed(2) : (t.pnlUsd!=null?(t.pnlUsd>=0?'+':'')+'$'+t.pnlUsd.toFixed(2):'--');
+  const holdDisp = (t.openTime && t.closeTime) ? fmtHold(t.closeTime - t.openTime) : '--';
+  grid.innerHTML = `
+    <div class="ts-item"><div class="ts-label">Mã</div><div class="ts-val">${t.symbol}</div></div>
+    <div class="ts-item"><div class="ts-label">Lệnh</div><div class="ts-val" style="font-size:11px">${t.ordertype||''}</div></div>
+    <div class="ts-item"><div class="ts-label">Kết quả</div><div class="ts-val" style="color:${(t.status==='Chốt lời'?'var(--green)':'var(--red)')}">${t.status}</div></div>
+    <div class="ts-item"><div class="ts-label">PnL</div><div class="ts-val" style="color:${pnlC}">${pnlDisp}</div></div>
+    <div class="ts-item"><div class="ts-label">RR</div><div class="ts-val" style="color:var(--orange)">${rrDisp}</div></div>
+    <div class="ts-item"><div class="ts-label">TG giữ</div><div class="ts-val" style="font-size:12px;color:var(--cyan)">${holdDisp}</div></div>
+    <div class="ts-item"><div class="ts-label">Entry</div><div class="ts-val" style="font-size:12px">${t.entry?'$'+t.entry:'--'}</div></div>
+    <div class="ts-item"><div class="ts-label">8 Bước</div><div class="ts-val" style="font-size:12px;color:var(--yellow)">${(t.checks||[]).filter(c=>c===1).length}/8</div></div>
+  `;
+  box.style.display = 'block';
+}
+
+function openLessonModal(editId) {
+  document.getElementById('l-edit-id').value = editId || '';
+  document.getElementById('l-trade-id').value = '';
+  document.getElementById('lesson-modal-title').textContent = '📝 Thêm đúc kết bài học';
+  document.getElementById('lesson-trade-summary').style.display = 'none';
+  if (!editId) {
+    document.getElementById('l-date').value = new Date().toISOString().slice(0,10);
+    document.getElementById('l-symbol').value = '';
+    document.getElementById('l-outcome').value = '';
+    document.getElementById('l-cat').value = 'Tâm lý';
+    document.getElementById('l-stars').value = '5';
+    ['l-title','l-situation','l-mistake','l-lesson','l-action'].forEach(id => document.getElementById(id).value = '');
+  }
+  document.getElementById('lesson-modal').classList.add('open');
+}
+
+function closeLessonModal() { document.getElementById('lesson-modal').classList.remove('open'); }
+
+function saveLesson() {
+  const editId = document.getElementById('l-edit-id').value;
+  const tradeId = document.getElementById('l-trade-id').value;
+  const lesson = {
+    id: editId || Date.now().toString(),
+    tradeId: tradeId || null,
+    date: document.getElementById('l-date').value,
+    symbol: document.getElementById('l-symbol').value,
+    outcome: document.getElementById('l-outcome').value,
+    cat: document.getElementById('l-cat').value,
+    stars: parseInt(document.getElementById('l-stars').value),
+    title: document.getElementById('l-title').value,
+    situation: document.getElementById('l-situation').value,
+    mistake: document.getElementById('l-mistake').value,
+    lesson: document.getElementById('l-lesson').value,
+    action: document.getElementById('l-action').value,
+  };
+  if (editId) {
+    const idx = state.lessons.findIndex(l => l.id === editId);
+    if (idx >= 0) state.lessons[idx] = lesson; else state.lessons.unshift(lesson);
+  } else {
+    state.lessons.unshift(lesson);
+  }
+  closeLessonModal(); saveToStorage(); renderLessons(); renderTrades();
+}
+
+function renderLessons() {
+  const fCat = document.getElementById('filter-lesson-cat').value;
+  const fSym = document.getElementById('filter-lesson-symbol').value;
+  const fOut = document.getElementById('filter-lesson-outcome').value;
+  let lessons = [...state.lessons];
+
+  // Stats bar — always from full list
+  updateLessonStatsBar(state.lessons, fCat);
+
+  if (fCat) lessons = lessons.filter(l => l.cat === fCat);
+  if (fSym) lessons = lessons.filter(l => l.symbol === fSym);
+  if (fOut) lessons = lessons.filter(l => l.outcome === fOut);
+  const catClass = {'Tâm lý':'cat-psych','Kỹ thuật':'cat-tech','Kỷ luật':'cat-disc','Vốn':'cat-cap','Chiến lược':'cat-strat'};
+  const container = document.getElementById('lessons-list');
+  if (!lessons.length) { container.innerHTML = '<div class="empty"><div class="empty-icon">📚</div>Chưa có đúc kết nào</div>'; return; }
+  container.innerHTML = lessons.map(l => {
+    const stars = '⭐'.repeat(l.stars || 1);
+    const cc = catClass[l.cat] || 'cat-psych';
+    const linked = l.tradeId ? `<span class="linked-trade-tag">🔗 Lệnh #${l.tradeId.slice(-4)}</span>` : '';
+    const outBadge = l.outcome ? `<span class="badge ${l.outcome==='Chốt lời'?'badge-win':'badge-loss'}">${l.outcome}</span>` : '';
+    return `<div class="lesson-card ${l.tradeId ? 'linked' : ''}">
+      <div class="lesson-header">
+        <span class="lesson-cat ${cc}">${l.cat}</span>
+        ${l.symbol ? `<span class="badge badge-open">${l.symbol}</span>` : ''}
+        ${outBadge}
+        ${linked}
+        <span class="stars">${stars}</span>
+        <span style="font-size:10px;color:var(--dim);margin-left:auto">${l.date}</span>
+        <button class="btn btn-sm" onclick="editLesson('${l.id}')">✏️</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteLesson('${l.id}')">🗑</button>
+      </div>
+      <div class="lesson-title">🚀 ${l.title || '(Chưa có tiêu đề)'}</div>
+      ${l.situation ? `<div class="lesson-field"><div class="lesson-field-label">📋 Tình huống</div><div class="lesson-field-val">${l.situation}</div></div>` : ''}
+      ${l.mistake ? `<div class="lesson-field"><div class="lesson-field-label">❌ Sai lầm</div><div class="lesson-field-val">${l.mistake}</div></div>` : ''}
+      ${l.lesson ? `<div class="lesson-field"><div class="lesson-field-label">💡 Bài học</div><div class="lesson-field-val">${l.lesson}</div></div>` : ''}
+      ${l.action ? `<div class="lesson-field"><div class="lesson-field-label">🎯 Hành động</div><div class="lesson-field-val">${l.action}</div></div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function updateLessonStatsBar(all, activeCat) {
+  const count = cat => cat ? all.filter(l => l.cat === cat).length : all.length;
+  document.getElementById('lsb-total').textContent    = count('');
+  document.getElementById('lsb-psych-val').textContent = count('Tâm lý');
+  document.getElementById('lsb-tech-val').textContent  = count('Kỹ thuật');
+  document.getElementById('lsb-cap-val').textContent   = count('Vốn');
+  document.getElementById('lsb-disc-val').textContent  = count('Kỷ luật');
+  document.getElementById('lsb-strat-val').textContent = count('Chiến lược');
+  // highlight active card
+  const map = {'':'lsb-all','Tâm lý':'lsb-psych','Kỹ thuật':'lsb-tech','Vốn':'lsb-cap','Kỷ luật':'lsb-disc','Chiến lược':'lsb-strat'};
+  Object.values(map).forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.classList.remove('active-filter'); el.style.borderColor=''; }
+  });
+  const activeId = map[activeCat || ''];
+  if (activeId) {
+    const el = document.getElementById(activeId);
+    const colors = {'lsb-all':'var(--blue)','lsb-psych':'var(--purple)','lsb-tech':'var(--yellow)','lsb-cap':'var(--green)','lsb-disc':'var(--red)','lsb-strat':'var(--cyan)'};
+    if (el) { el.classList.add('active-filter'); el.style.borderColor = colors[activeId] || 'var(--muted)'; }
+  }
+}
+
+function filterLessonCat(cat) {
+  document.getElementById('filter-lesson-cat').value = cat;
+  renderLessons();
+}
+
+function editLesson(id) {
+  const l = state.lessons.find(x => x.id === id);
+  if (!l) return;
+  openLessonModal(id);
+  document.getElementById('l-trade-id').value = l.tradeId || '';
+  document.getElementById('l-date').value = l.date;
+  document.getElementById('l-symbol').value = l.symbol || '';
+  document.getElementById('l-outcome').value = l.outcome || '';
+  document.getElementById('l-cat').value = l.cat;
+  document.getElementById('l-stars').value = l.stars;
+  document.getElementById('l-title').value = l.title;
+  document.getElementById('l-situation').value = l.situation;
+  document.getElementById('l-mistake').value = l.mistake;
+  document.getElementById('l-lesson').value = l.lesson;
+  document.getElementById('l-action').value = l.action;
+  if (l.tradeId) {
+    const t = state.trades.find(x => x.id === l.tradeId);
+    if (t) { showTradeSummary(t); document.getElementById('lesson-modal-title').textContent = '📝 Đúc kết: ' + t.symbol + ' #' + l.tradeId.slice(-4); }
+  }
+}
+
+function deleteLesson(id) {
+  if (!confirm('Xoá bài học này?')) return;
+  state.lessons = state.lessons.filter(l => l.id !== id);
+  saveToStorage(); renderLessons(); renderTrades();
+}
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+function fmtHold(ms) {
+  if (!ms || ms <= 0) return '--';
+  const h = ms / 3600000;
+  return h < 24 ? h.toFixed(1) + ' giờ' : (h/24).toFixed(1) + ' ngày';
+}
+
+function fmtHoldLong(ms) {
+  if (!ms || ms <= 0) return '--';
+  const totalSec = Math.floor(ms / 1000);
+  const d = Math.floor(totalSec / 86400);
+  const h = Math.floor((totalSec % 86400) / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  if (d > 0) return `${d} ngày ${h} giờ ${m} phút`;
+  if (h > 0) return `${h} giờ ${m} phút`;
+  return `${m} phút`;
+}
+
+function exportJSON() {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));
+  a.download = 'maxs-journal-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+}
+
+function importJSON(evt) {
+  const file = evt.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = e => { try { Object.assign(state, JSON.parse(e.target.result)); saveToStorage(); renderAll(); alert('✅ Nhập thành công!'); } catch(e) { alert('❌ File không hợp lệ'); } };
+  r.readAsText(file); evt.target.value = '';
+}
+
+function doLogout() {
+  sessionStorage.removeItem('maxs_auth');
+  document.getElementById('login-screen').style.display = 'flex';
+  setTimeout(() => document.getElementById('login-pass').focus(), 100);
+}
+
+// ─── REALTIME TIMER ───────────────────────────────────────────────────────────
+function tickRealtimeTimers() {
+  document.querySelectorAll('.rt-timer[data-open]').forEach(el => {
+    const openTime = parseInt(el.getAttribute('data-open'));
+    if (!openTime) return;
+    const ms = Date.now() - openTime;
+    const totalSec = Math.floor(ms / 1000);
+    const d = Math.floor(totalSec / 86400);
+    const h = Math.floor((totalSec % 86400) / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    if (d > 0) el.textContent = `⏳ ${d}n ${h}g ${m}p`;
+    else if (h > 0) el.textContent = `⏳ ${h}g ${m}p ${s}s`;
+    else if (m > 0) el.textContent = `⏳ ${m}p ${s}s`;
+    else el.textContent = `⏳ ${s}s`;
+  });
+}
+setInterval(tickRealtimeTimers, 1000);
+
+// Close on outside click
+['trade-modal','lesson-modal','cap-modal'].forEach(id => {
+  document.getElementById(id).addEventListener('click', function(e) { if (e.target === this) this.classList.remove('open'); });
+});
+</script>
+</body>
+</html>
