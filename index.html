@@ -4,29 +4,35 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>MAXS Trade Journal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0f1219;--bg2:#1e293b;--bg3:#0f172a;--border:#334155;
-  --text:#e2e8f0;--muted:#94a3b8;--dim:#64748b;
-  --orange:#e8601c;--navy:#1a2d6d;
-  --green:#10b981;--red:#ef4444;--blue:#3b82f6;
-  --yellow:#f59e0b;--purple:#8b5cf6;--cyan:#06b6d4;
+  --bg:#0d1526;--bg2:#1b2842;--bg3:#131d33;--border:#2b3c5a;--head:#ffffff;--track:#0f172a;
+  --text:#e8edf5;--muted:#9aa7ba;--dim:#5f6d82;
+  --orange:#f26f2c;--navy:#1a2d6d;
+  --green:#10b981;--red:#f2555a;--blue:#4b8bf5;
+  --yellow:#f5a623;--purple:#9b7cf0;--cyan:#22c9d6;
+  --card:linear-gradient(180deg,#1c2a46,#16203a);
+  --line:rgba(140,170,225,.16);
+  --shadow:0 1px 2px rgba(0,0,0,.35),0 12px 30px -14px rgba(0,0,0,.7);
+  --radius:15px;
 }
-body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;font-size:14px;min-height:100vh}
-.nav{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;flex-wrap:wrap;gap:8px}
+body{background:radial-gradient(1100px 620px at 82% -15%,rgba(44,74,150,.34),transparent 60%),radial-gradient(820px 480px at -2% 4%,rgba(242,111,44,.08),transparent 52%),linear-gradient(180deg,#111d33,#0c1424 72%);background-attachment:fixed;color:var(--text);font-family:'Inter','Segoe UI',system-ui,sans-serif;font-size:14px;min-height:100vh;-webkit-font-smoothing:antialiased;letter-spacing:-.006em}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;background:rgba(25,37,62,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:100;flex-wrap:wrap;gap:8px}
 .nav-logo{display:flex;align-items:center;gap:8px}
-.logo-text{font-size:17px;font-weight:700;color:#fff}
+.logo-text{font-size:17px;font-weight:700;color:var(--head)}
 .logo-text span{color:var(--orange)}
 .nav-tabs{display:flex;gap:4px}
 .nav-tab{padding:6px 16px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:500;background:transparent;color:var(--muted);transition:.2s}
-.nav-tab.active{background:var(--navy);color:#fff}
+.nav-tab.active{background:linear-gradient(180deg,#2a4788,#1e326f);color:#fff;box-shadow:0 4px 14px -6px rgba(38,64,127,.9);border-bottom:2px solid var(--orange)}
 .nav-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.btn{padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text);cursor:pointer;font-size:12px;font-weight:500;transition:.2s}
-.btn:hover{background:var(--border)}
-.btn-primary{background:var(--navy);border-color:var(--navy);color:#fff}
+.btn{padding:7px 14px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--text);cursor:pointer;font-size:12px;font-weight:500;transition:.18s ease}
+.btn:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.16);transform:translateY(-1px)}
+.btn-primary{background:linear-gradient(180deg,#26407f,#1a2d6d);border-color:#2c4a8f;color:#fff}
 .btn-primary:hover{background:#243d8a}
-.btn-orange{background:var(--orange);border-color:var(--orange);color:#fff}
+.btn-orange{background:linear-gradient(180deg,#f57f3f,#e2601f);border-color:#f26f2c;color:#fff;box-shadow:0 6px 16px -8px rgba(242,111,44,.8)}
 .btn-orange:hover{opacity:.9}
 .btn-green{background:var(--green);border-color:var(--green);color:#fff}
 .btn-red{background:var(--red);border-color:var(--red);color:#fff}
@@ -36,20 +42,21 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;fo
 .page{display:none;padding:18px 20px;max-width:1600px;margin:0 auto}
 .page.active{display:block}
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
-.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);transition:.18s ease}
+.kpi:hover{border-color:rgba(255,255,255,.15);transform:translateY(-2px)}
 .kpi-label{font-size:10px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em}
-.kpi-val{font-size:20px;font-weight:700}
+.kpi-val{font-size:23px;font-weight:700;letter-spacing:-.025em;font-variant-numeric:tabular-nums}
 .kpi-sub{font-size:10px;color:var(--dim);margin-top:2px}
 .green{color:var(--green)}.red{color:var(--red)}.blue{color:var(--blue)}
 .orange{color:var(--orange)}.yellow{color:var(--yellow)}.purple{color:var(--purple)}.cyan{color:var(--cyan)}
 .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
-.section-title{font-size:15px;font-weight:600;color:#fff}
-.tbl-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border);margin-bottom:16px}
+.section-title{font-size:15px;font-weight:600;color:var(--head);padding-left:10px;border-left:3px solid var(--orange);line-height:1.1}
+.tbl-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--line);margin-bottom:16px;box-shadow:var(--shadow)}
 table{width:100%;border-collapse:collapse;min-width:1100px}
-th{background:var(--bg2);padding:9px 10px;text-align:left;font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;border-bottom:1px solid var(--border)}
-td{padding:9px 10px;border-bottom:1px solid #1a2535;font-size:11px;vertical-align:middle;white-space:nowrap}
+th{background:rgba(255,255,255,.03);padding:10px 11px;text-align:left;font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;border-bottom:1px solid var(--line)}
+td{padding:10px 11px;border-bottom:1px solid rgba(255,255,255,.05);font-size:11px;vertical-align:middle;white-space:nowrap;font-variant-numeric:tabular-nums}
 tr:last-child td{border-bottom:none}
-tr:hover td{background:#1a2535}
+tr:hover td{background:rgba(255,255,255,.035)}
 .badge{display:inline-block;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:700}
 .badge-wait{background:#1e293b;color:var(--muted)}
 .badge-open{background:#1a3a5c;color:var(--blue)}
@@ -68,7 +75,7 @@ tr:hover td{background:#1a2535}
 .modal-bg.open{display:flex}
 .modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:22px;width:min(96vw,820px);margin:auto}
 .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
-.modal-title{font-size:15px;font-weight:700;color:#fff}
+.modal-title{font-size:15px;font-weight:700;color:var(--head)}
 .modal-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;padding:0 4px}
 .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:10px;margin-bottom:14px}
 .form-group{display:flex;flex-direction:column;gap:4px}
@@ -91,10 +98,11 @@ tr:hover td{background:#1a2535}
 .check-item.fail .check-dot{background:var(--red);border-color:var(--red)}
 .check-label{font-size:11px;color:var(--text);line-height:1.35;flex:1}
 .check-status{font-size:10px;font-weight:700;white-space:nowrap;margin-top:2px}
-.chart-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px}
+.chart-box{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:16px;box-shadow:var(--shadow)}
 .chart-title{font-size:12px;color:var(--muted);margin-bottom:10px;font-weight:500}
 .equity-svg{width:100%;height:110px}
-.lesson-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px}
+.lesson-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:15px;margin-bottom:11px;box-shadow:var(--shadow);transition:.18s ease}
+.lesson-card:hover{border-color:rgba(255,255,255,.14)}
 .lesson-card.linked{border-left:3px solid var(--orange)}
 .lesson-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
 .lesson-cat{padding:2px 9px;border-radius:5px;font-size:10px;font-weight:700}
@@ -104,7 +112,7 @@ tr:hover td{background:#1a2535}
 .cat-cap{background:#1a3020;color:var(--green)}
 .cat-strat{background:#1a3030;color:var(--cyan)}
 .stars{color:var(--yellow);font-size:12px}
-.lesson-title{font-size:13px;font-weight:600;color:#fff;margin-bottom:8px}
+.lesson-title{font-size:13px;font-weight:600;color:var(--head);margin-bottom:8px}
 .lesson-field{margin-bottom:7px}
 .lesson-field-label{font-size:10px;color:var(--dim);text-transform:uppercase;margin-bottom:2px;letter-spacing:.04em}
 .lesson-field-val{font-size:12px;color:var(--muted);line-height:1.5}
@@ -115,13 +123,14 @@ tr:hover td{background:#1a2535}
 .ts-label{font-size:9px;color:var(--dim);text-transform:uppercase;margin-bottom:2px}
 .ts-val{font-size:13px;font-weight:700}
 .coin-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-bottom:16px}
-.coin-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px}
+.coin-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);transition:.18s ease}
+.coin-card:hover{border-color:rgba(255,255,255,.15);transform:translateY(-2px)}
 .coin-name{font-size:14px;font-weight:700;margin-bottom:7px}
 .coin-row{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:3px}
-.sizing-banner{background:linear-gradient(135deg,#1a2d6d1a,#e8601c0d);border:1px solid #1a2d6d55;border-radius:12px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.sizing-banner{background:linear-gradient(135deg,rgba(38,64,127,.22),rgba(242,111,44,.06));border:1px solid rgba(120,150,220,.28);border-radius:var(--radius);padding:15px 18px;margin-bottom:16px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;box-shadow:var(--shadow)}
 .sb-item{}
 .sb-label{font-size:10px;color:var(--muted);margin-bottom:3px;text-transform:uppercase}
-.sb-val{font-size:18px;font-weight:700;color:#fff}
+.sb-val{font-size:19px;font-weight:700;color:var(--head);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .sb-sub{font-size:10px;color:var(--dim);margin-top:2px}
 .vdivider{width:1px;height:44px;background:var(--border)}
 .mode-tag{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700}
@@ -140,7 +149,7 @@ tr:hover td{background:#1a2535}
 /* LOGIN SCREEN */
 .login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center}
 .login-box{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:40px 36px;width:min(92vw,380px);text-align:center}
-.login-logo{font-size:32px;font-weight:800;color:#fff;margin-bottom:4px}
+.login-logo{font-size:32px;font-weight:800;color:var(--head);margin-bottom:4px}
 .login-logo span{color:var(--orange)}
 .login-sub{font-size:12px;color:var(--dim);margin-bottom:28px}
 .login-label{font-size:11px;color:var(--muted);text-align:left;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em}
@@ -165,6 +174,21 @@ tr:hover td{background:#1a2535}
 .ls-card-label{font-size:10px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;letter-spacing:.05em}
 .ls-card-val{font-size:26px;font-weight:700}
 .ls-bar{height:3px;border-radius:2px;margin-top:6px;opacity:.5}
+
+/* ===== LIGHT MODE ===== */
+body.light{
+  --bg:#eef2f8;--bg2:#ffffff;--bg3:#f3f6fb;--border:#dde4ef;
+  --text:#182338;--muted:#586780;--dim:#93a1b8;
+  --green:#059669;--red:#dc2626;--blue:#2563eb;--yellow:#d97706;--purple:#7c3aed;--cyan:#0e8ea6;
+  --card:linear-gradient(180deg,#ffffff,#f9fbff);
+  --line:rgba(22,45,100,.11);
+  --shadow:0 1px 2px rgba(22,45,100,.05),0 14px 30px -18px rgba(22,45,100,.26);
+  --head:#152b45;--track:#e4e9f2;
+  background:radial-gradient(1100px 620px at 84% -16%,rgba(40,68,140,.09),transparent 60%),radial-gradient(760px 440px at -2% 3%,rgba(242,111,44,.06),transparent 52%),linear-gradient(180deg,#eef2f8,#e5ebf5 72%);
+}
+body.light .nav{background:rgba(255,255,255,.82)}
+body.light th{background:#eef2f8}
+body.light tr:hover td{background:#f2f6fc}
 </style>
 </head>
 <body>
@@ -202,6 +226,7 @@ tr:hover td{background:#1a2535}
     <button class="btn btn-sm" onclick="exportJSON()">📤 Xuất JSON</button>
     <label class="btn btn-sm" style="cursor:pointer">📥 Nhập JSON<input type="file" accept=".json" onchange="importJSON(event)" style="display:none"></label>
     <button class="btn btn-orange btn-sm" onclick="openTradeModal()">+ Thêm lệnh</button>
+    <button class="btn btn-sm" id="theme-btn" onclick="toggleTheme()" title="Sáng/Tối">🌙</button>
     <button class="btn btn-sm" onclick="doLogout()" title="Đăng xuất" style="color:var(--dim)">🔒</button>
   </div>
 </div>
@@ -220,7 +245,7 @@ tr:hover td{background:#1a2535}
       <div class="sb-label">Vốn ban đầu</div>
       <div style="display:flex;gap:6px;align-items:center;margin-top:2px">
         <input id="init-cap" type="number" value="18000" step="any"
-          style="width:90px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:#fff;font-size:13px"
+          style="width:90px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:13px"
           onchange="updateInitCap()"/>
         <span style="font-size:10px;color:var(--dim)">USD</span>
       </div>
@@ -950,10 +975,10 @@ function renderCapPhilosophy(){
     <div class="section-header" style="margin-top:8px"><div class="section-title">💎 Vốn & Triết lý — x2 rút gốc · tiền chợ nuôi mãi</div></div>
     <div class="chart-box">
       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px">
-        <span style="color:var(--muted)">Vốn gốc <b style="color:#fff">$${init.toLocaleString()}</b></span>
+        <span style="color:var(--muted)">Vốn gốc <b style="color:var(--head)">$${init.toLocaleString()}</b></span>
         <span style="color:${reached?'var(--green)':'var(--muted)'}">Mốc rút gốc (x2) <b>$${target.toLocaleString()}</b></span>
       </div>
-      <div style="height:14px;border-radius:7px;background:#0f172a;overflow:hidden">
+      <div style="height:14px;border-radius:7px;background:var(--track);overflow:hidden">
         <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--navy),var(--orange));transition:.4s"></div>
       </div>
       <div style="font-size:11px;color:var(--dim);margin-top:6px">
@@ -1715,7 +1740,7 @@ function gauge(label, valStr, pct, color, sub){
   return `<div class="kpi" style="min-width:200px">
     <div class="kpi-label">${label}</div>
     <div class="kpi-val" style="color:${color};font-size:17px">${valStr}</div>
-    <div style="height:6px;border-radius:3px;background:#0f172a;margin-top:6px;overflow:hidden"><div style="height:100%;width:${w}%;background:${color}"></div></div>
+    <div style="height:6px;border-radius:3px;background:var(--track);margin-top:6px;overflow:hidden"><div style="height:100%;width:${w}%;background:${color}"></div></div>
     <div class="kpi-sub">${sub||''}</div></div>`;
 }
 
@@ -1835,6 +1860,11 @@ function renderBotSrc(meta, src, mids){
 document.getElementById('tab-bot').addEventListener('click', loadBotData);
 loadBotData();
 setInterval(loadBotData, 30000);
+</script>
+<script>
+function applyTheme(t){document.body.classList.toggle('light',t==='light');var b=document.getElementById('theme-btn');if(b)b.textContent=(t==='light'?'🌙':'☀️');}
+function toggleTheme(){var t=document.body.classList.contains('light')?'dark':'light';localStorage.setItem('maxs_theme',t);applyTheme(t);}
+applyTheme(localStorage.getItem('maxs_theme')||'light');
 </script>
 </body>
 </html>
