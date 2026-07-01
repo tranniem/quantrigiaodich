@@ -194,6 +194,7 @@ tr:hover td{background:#1a2535}
     <button class="nav-tab active" id="tab-dashboard" onclick="showPage('dashboard',this)">📊 Dashboard</button>
     <button class="nav-tab" id="tab-trades" onclick="showPage('trades',this)">📋 Quản lý lệnh</button>
     <button class="nav-tab" id="tab-lessons" onclick="showPage('lessons',this)">📚 Đúc kết</button>
+    <button class="nav-tab" id="tab-bot" onclick="showPage('bot',this)">🤖 Bot</button>
   </div>
   <div class="nav-actions">
     <span id="usdvnd-rate" style="font-size:11px;color:var(--dim)">USD/VND: --</span>
@@ -376,6 +377,18 @@ tr:hover td{background:#1a2535}
     </select>
   </div>
   <div id="lessons-list"><div class="empty"><div class="empty-icon">📚</div>Chưa có đúc kết nào</div></div>
+</div>
+
+<!-- PAGE 4: BOT PERFORMANCE -->
+<div class="page" id="page-bot">
+  <div class="section-header">
+    <div class="section-title">🤖 Bot Performance — thống kê tự động (Hyperliquid + MT5)</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span id="bot-updated" style="font-size:11px;color:var(--dim)">—</span>
+      <button class="btn btn-sm" onclick="loadBotData()">🔄 Làm mới</button>
+    </div>
+  </div>
+  <div id="bot-container"><div class="empty"><div class="empty-icon">🤖</div>Đang tải dữ liệu bot…</div></div>
 </div>
 
 <!-- MODAL: THÊM/SỬA LỆNH -->
@@ -1601,6 +1614,188 @@ setInterval(tickRealtimeTimers, 1000);
 ['trade-modal','lesson-modal','cap-modal'].forEach(id => {
   document.getElementById(id).addEventListener('click', function(e) { if (e.target === this) this.classList.remove('open'); });
 });
+</script>
+<script>
+// ═══ BOT PERFORMANCE — Phase 1: GIÁM SÁT SỐNG (Firebase realtime + giá Binance) ═══
+const BOT_FB_URL = 'https://maxs-trading-default-rtdb.asia-southeast1.firebasedatabase.app';
+const BOT_SRCS = [{k:'HL',name:'Hyperliquid Bot',emoji:'⚡'},{k:'MT5',name:'MT5 Bot (Pepperstone)',emoji:'📉'}];
+const BOT_COIN_COLORS = {BTC:'#f7931a',ETH:'#627eea',SOL:'#14f195',BNB:'#f3ba2f',BTCUSD:'#f7931a',ETHUSD:'#627eea'};
+const DD_HALT = 20; // ngưỡng cắt drawdown (%)
+
+function baseCoin(c){ return (c||'').replace('USDT','').replace('USD',''); }
+
+async function fetchMids(){
+  try{
+    const syms = JSON.stringify(['BTCUSDT','ETHUSDT','SOLUSDT','BNBUSDT']);
+    const r = await fetch('https://api.binance.com/api/v3/ticker/price?symbols=' + encodeURIComponent(syms));
+    const arr = await r.json(); const m = {};
+    arr.forEach(x => { m[x.symbol.replace('USDT','')] = +x.price; });
+    return m;
+  }catch(e){ return {}; }
+}
+
+async function loadBotData(){
+  const cont = document.getElementById('bot-container');
+  let data = null, mids = {};
+  try{
+    const [d, m] = await Promise.all([
+      fetch(BOT_FB_URL + '/bots.json?t=' + Date.now()).then(r=>r.json()),
+      fetchMids()
+    ]);
+    data = d; mids = m;
+  }catch(e){ cont.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div>Không kết nối được Firebase</div>'; return; }
+  document.getElementById('bot-updated').textContent = 'Cập nhật: ' + new Date().toLocaleTimeString('vi-VN');
+  if(!data){ cont.innerHTML = '<div class="empty"><div class="empty-icon">🤖</div>Bot chưa gửi dữ liệu nào lên Firebase</div>'; return; }
+  cont.innerHTML = BOT_SRCS.map(s => renderBotSrc(s, data[s.k], mids)).join('');
+}
+
+function botStat(src){
+  const trades = src && src.trades ? Object.values(src.trades) : [];
+  const closed = trades.filter(t=>t.status==='closed');
+  const open = trades.filter(t=>t.status==='open');
+  const wins = closed.filter(t=>(t.pnl||0)>0);
+  const losses = closed.filter(t=>(t.pnl||0)<0);
+  const wr = closed.length ? wins.length/closed.length*100 : 0;
+  const avgR = closed.length ? closed.reduce((a,t)=>a+(t.exitR||0),0)/closed.length : 0;
+  const gW = wins.reduce((a,t)=>a+(t.pnl||0),0);
+  const gL = Math.abs(losses.reduce((a,t)=>a+(t.pnl||0),0));
+  const pf = gL>0 ? gW/gL : (gW>0?99:0);
+  const totalPnl = closed.reduce((a,t)=>a+(t.pnl||0),0);
+  const bal = src && src.status ? (src.status.balance||0) : 0;
+  const base = bal - totalPnl;
+  const seq = closed.slice().sort((a,b)=>(a.closeTs||0)-(b.closeTs||0));
+  let run=base, pts=[base], peak=base, dd=0;
+  for(const t of seq){ run += (t.pnl||0); pts.push(run); if(run>peak)peak=run; if(peak>0){const d=(peak-run)/peak*100; if(d>dd)dd=d;} }
+  return {trades,closed,open,wins,losses,wr,avgR,pf,totalPnl,bal,pts,dd};
+}
+
+function botEquitySvg(pts){
+  if(pts.length<2) return '<svg class="equity-svg" viewBox="0 0 800 110"><text x="400" y="60" text-anchor="middle" fill="#334155" font-size="13">Chưa có lệnh đóng</text></svg>';
+  const mn=Math.min(...pts),mx=Math.max(...pts),rg=mx-mn||1,W=800,H=100,pd=8;
+  const P=pts.map((v,i)=>[pd+i/(pts.length-1)*(W-pd*2), H-pd-(v-mn)/rg*(H-pd*2)]);
+  const path='M'+P.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' L');
+  const area=path+' L'+P[P.length-1][0]+','+H+' L'+P[0][0]+','+H+' Z';
+  const col=pts[pts.length-1]>=pts[0]?'#10b981':'#ef4444';
+  return `<svg class="equity-svg" viewBox="0 0 800 110" preserveAspectRatio="none"><defs><linearGradient id="beg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${col}" stop-opacity=".3"/><stop offset="100%" stop-color="${col}" stop-opacity="0"/></linearGradient></defs><path d="${area}" fill="url(#beg)"/><path d="${path}" fill="none" stroke="${col}" stroke-width="2.5"/></svg>`;
+}
+
+function gauge(label, valStr, pct, color, sub){
+  const w = Math.max(0, Math.min(100, pct));
+  return `<div class="kpi" style="min-width:200px">
+    <div class="kpi-label">${label}</div>
+    <div class="kpi-val" style="color:${color};font-size:17px">${valStr}</div>
+    <div style="height:6px;border-radius:3px;background:#0f172a;margin-top:6px;overflow:hidden"><div style="height:100%;width:${w}%;background:${color}"></div></div>
+    <div class="kpi-sub">${sub||''}</div></div>`;
+}
+
+function renderBotSrc(meta, src, mids){
+  const st = botStat(src);
+  const status = src && src.status ? src.status : null;
+  const age = status ? (Date.now()-(status.ts||0)) : Infinity;
+  const online = age < 5*60000;
+  const dead = status && age > 60*60000;
+  const dot = `<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${online?'var(--green)':'var(--red)'};margin-right:5px"></span>`;
+  const balStr = status ? '$'+(status.balance||0).toLocaleString('en-US',{maximumFractionDigits:2}) : '--';
+  const net = status && status.net ? status.net : '';
+  const halted = status && status.halted;
+
+  // cảnh báo bot chết / halt
+  let alert = '';
+  if(!status) alert = `<div style="background:#2a1a1a;border:1px solid var(--red);border-radius:10px;padding:10px 14px;margin-bottom:10px;color:var(--muted)">⏳ ${meta.name}: chưa nhận tín hiệu nào từ Firebase.</div>`;
+  else if(dead) alert = `<div style="background:#2a0f0f;border:1px solid var(--red);border-radius:10px;padding:10px 14px;margin-bottom:10px;color:#fca5a5;font-weight:600">🚨 ${meta.name} IM LẶNG > 1 GIỜ (lần cuối ${new Date(status.ts).toLocaleTimeString('vi-VN')}) — có thể đã chết, kiểm tra ngay!</div>`;
+  else if(halted) alert = `<div style="background:#2a2410;border:1px solid var(--yellow);border-radius:10px;padding:10px 14px;margin-bottom:10px;color:#fde68a;font-weight:600">🛑 ${meta.name} đang HALT (drawdown chạm ngưỡng) — ngừng vào lệnh mới.</div>`;
+
+  // ĐỒNG HỒ RỦI RO
+  const openRisk = st.open.filter(t=>(t.maxR||0)<1).reduce((a,t)=>a+((t.size||0)*(t.risk||0)),0);
+  const riskPct = st.bal>0 ? openRisk/st.bal*100 : 0;
+  const peak = status && status.peak ? status.peak : st.bal;
+  const ddNow = peak>0 ? Math.max(0,(peak-st.bal)/peak*100) : 0;
+  const gauges = `<div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+    ${gauge('Rủi ro đang mở', '$'+openRisk.toFixed(2), riskPct*5, riskPct>10?'var(--red)':'var(--cyan)', riskPct.toFixed(1)+'% vốn (lệnh chưa về hoà)')}
+    ${gauge('Drawdown hiện tại', ddNow.toFixed(1)+'%', ddNow/DD_HALT*100, ddNow>=DD_HALT?'var(--red)':ddNow>=DD_HALT*0.6?'var(--yellow)':'var(--green)', 'ngưỡng cắt '+DD_HALT+'% · đỉnh $'+peak.toLocaleString('en-US',{maximumFractionDigits:0}))}
+  </div>`;
+
+  // VỊ THẾ ĐANG MỞ (giám sát realtime)
+  const openRows = st.open.length ? st.open.sort((a,b)=>(b.openTs||0)-(a.openTs||0)).map(t=>{
+    const ds = t.dir==='BUY'?1:-1;
+    const px = mids[baseCoin(t.coin)];
+    let liveR='—', uPnl='—', uC='var(--dim)';
+    if(px && t.entry && t.risk){
+      const lr=((px-t.entry)*ds)/t.risk, up=(px-t.entry)*ds*(t.size||0);
+      uC = up>=0?'var(--green)':'var(--red)';
+      liveR = `<span style="color:${lr>=0?'var(--green)':'var(--red)'}">${lr>=0?'+':''}${lr.toFixed(2)}R</span>`;
+      uPnl = `<span style="color:${uC}">${up>=0?'+':''}$${up.toFixed(2)}</span>`;
+    }
+    return `<tr><td style="font-weight:700">${t.coin}</td>
+      <td><span class="badge ${t.dir==='BUY'?'badge-bs':'badge-ss'}">${t.dir}</span></td>
+      <td>${t.entry!=null?'$'+(+t.entry).toLocaleString():'--'}</td>
+      <td style="color:var(--red)">${t.sl!=null?'$'+(+t.sl).toLocaleString():'--'}</td>
+      <td style="color:var(--cyan)">${t.size!=null?t.size:'--'}</td>
+      <td>${(t.size&&t.entry)?'$'+(t.size*t.entry).toFixed(0):'--'}</td>
+      <td>${px?'$'+px.toLocaleString():'--'}</td>
+      <td>${liveR}</td><td>${uPnl}</td>
+      <td style="color:var(--yellow)">maxR ${(t.maxR||0).toFixed(1)}${t.be?' ✓hoà':''}</td></tr>`;
+  }).join('') : '<tr><td colspan="10" class="empty">Không có vị thế mở</td></tr>';
+
+  // theo mã (lệnh đóng)
+  const coins={}; st.closed.forEach(t=>{ (coins[t.coin]=coins[t.coin]||[]).push(t); });
+  const coinCards = Object.keys(coins).length ? Object.entries(coins).map(([c,ts])=>{
+    const w=ts.filter(t=>(t.pnl||0)>0).length, wr=(w/ts.length*100).toFixed(0);
+    const r=(ts.reduce((a,t)=>a+(t.exitR||0),0)/ts.length).toFixed(2);
+    const p=ts.reduce((a,t)=>a+(t.pnl||0),0);
+    return `<div class="coin-card"><div class="coin-name" style="color:${BOT_COIN_COLORS[c]||'#94a3b8'}">${c}</div>
+      <div class="coin-row"><span>Win Rate</span><span style="color:${wr>=50?'var(--green)':'var(--red)'}">${wr}%</span></div>
+      <div class="coin-row"><span>Avg R</span><span style="color:var(--orange)">${r>=0?'+':''}${r}R</span></div>
+      <div class="coin-row"><span>Lệnh</span><span>${ts.length} (${w}W/${ts.length-w}L)</span></div>
+      <div class="coin-row"><span>PnL</span><span style="color:${p>=0?'var(--green)':'var(--red)'}">${p>=0?'+':''}$${p.toFixed(2)}</span></div></div>`;
+  }).join('') : '<div class="empty" style="padding:16px">Chưa có lệnh đóng</div>';
+
+  const closedRecent = st.closed.slice().sort((a,b)=>(b.closeTs||0)-(a.closeTs||0)).slice(0,12);
+  const closedRows = closedRecent.length ? closedRecent.map(t=>{
+    const rC=(t.exitR||0)>=0?'var(--green)':'var(--red)';
+    return `<tr><td style="font-weight:700">${t.coin}</td><td><span class="badge ${t.dir==='BUY'?'badge-bs':'badge-ss'}">${t.dir}</span></td>
+      <td><span style="color:${rC}">${(t.exitR||0)>=0?'+':''}${(t.exitR||0).toFixed(2)}R</span></td>
+      <td style="color:${(t.pnl||0)>=0?'var(--green)':'var(--red)'}">${(t.pnl||0)>=0?'+':''}$${(t.pnl||0).toFixed(2)}</td>
+      <td>${(t.pnl||0)>=0?'<span class="badge badge-win">thắng</span>':'<span class="badge badge-loss">thua</span>'}</td>
+      <td style="color:var(--dim);font-size:10px">${t.closeTs?new Date(t.closeTs).toLocaleString('vi-VN'):'--'}</td>
+      <td style="color:var(--dim);font-size:10px">${t.why||''}</td></tr>`;
+  }).join('') : '<tr><td colspan="7" class="empty">Chưa có lệnh đóng</td></tr>';
+
+  const pfStr = st.pf>=99?'∞':st.pf.toFixed(2);
+  return `<div style="margin-bottom:26px">
+    ${alert}
+    <div class="sizing-banner">
+      <div class="sb-item"><div class="sb-label">${meta.emoji} ${meta.name}</div>
+        <div class="sb-val">${dot}${online?'Online':'Offline'} <span style="font-size:11px;color:var(--dim)">${net}</span></div>
+        <div class="sb-sub">${status?('nhịp cuối '+new Date(status.ts).toLocaleTimeString('vi-VN')):'chưa có tín hiệu'}</div></div>
+      <div class="vdivider"></div>
+      <div class="sb-item"><div class="sb-label">Số dư (live)</div><div class="sb-val">${balStr}</div></div>
+      <div class="vdivider"></div>
+      <div class="sb-item"><div class="sb-label">Tổng PnL (đã đóng)</div><div class="sb-val" style="color:${st.totalPnl>=0?'var(--green)':'var(--red)'}">${st.totalPnl>=0?'+':''}$${st.totalPnl.toFixed(2)}</div></div>
+      <div class="vdivider"></div>
+      <div class="sb-item"><div class="sb-label">Đang mở / chờ</div><div class="sb-val">${st.open.length}<span style="font-size:12px;color:var(--dim)"> / ${status&&status.pending!=null?status.pending:0}</span></div></div>
+    </div>
+    ${gauges}
+    <div class="section-header" style="margin-top:6px"><div class="section-title" style="font-size:13px">🔴 Vị thế đang mở (realtime)</div></div>
+    <div class="tbl-wrap"><table style="min-width:960px"><thead><tr><th>Mã</th><th>Hướng</th><th>Entry</th><th>SL</th><th>Size</th><th>Giá trị</th><th>Giá now</th><th>R sống</th><th>uPnL</th><th>Đỉnh R</th></tr></thead><tbody>${openRows}</tbody></table></div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-val ${st.pf>=1.5?'green':st.pf>=1?'yellow':'red'}">${pfStr}</div></div>
+      <div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-val ${st.wr>=50?'green':'orange'}">${st.wr.toFixed(1)}%</div><div class="kpi-sub">${st.wins.length}W / ${st.losses.length}L</div></div>
+      <div class="kpi"><div class="kpi-label">R trung bình</div><div class="kpi-val orange">${st.avgR>=0?'+':''}${st.avgR.toFixed(2)}R</div></div>
+      <div class="kpi"><div class="kpi-label">Max Drawdown</div><div class="kpi-val red">${st.dd.toFixed(1)}%</div></div>
+      <div class="kpi"><div class="kpi-label">Lệnh đóng</div><div class="kpi-val blue">${st.closed.length}</div></div>
+    </div>
+    <div class="chart-box"><div class="chart-title">📈 Equity Curve — ${meta.name}</div>${botEquitySvg(st.pts)}</div>
+    <div class="section-header" style="margin-top:4px"><div class="section-title" style="font-size:13px">📊 Theo mã</div></div>
+    <div class="coin-stats">${coinCards}</div>
+    <div class="section-header" style="margin-top:4px"><div class="section-title" style="font-size:13px">📋 Lệnh đã đóng gần đây</div></div>
+    <div class="tbl-wrap"><table style="min-width:760px"><thead><tr><th>Mã</th><th>Hướng</th><th>R</th><th>PnL</th><th>KQ</th><th>Đóng lúc</th><th>Lý do</th></tr></thead><tbody>${closedRows}</tbody></table></div>
+  </div>`;
+}
+
+document.getElementById('tab-bot').addEventListener('click', loadBotData);
+loadBotData();
+setInterval(loadBotData, 30000);
 </script>
 </body>
 </html>
