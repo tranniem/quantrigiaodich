@@ -275,6 +275,8 @@ tr:hover td{background:#1a2535}
     <div class="empty"><div class="empty-icon">📉</div>Chưa có lệnh đóng</div>
   </div>
 
+  <div id="cap-philosophy"></div>
+
   <!-- CAPITAL LOG -->
   <div class="section-header" style="margin-top:8px"><div class="section-title">💰 Lịch sử nạp/rút vốn</div></div>
   <div class="tbl-wrap">
@@ -880,6 +882,7 @@ function renderDashboard() {
   renderEquity();
   renderCoinStats();
   renderCapLog();
+  renderCapPhilosophy();
 }
 
 function renderEquity() {
@@ -936,6 +939,33 @@ function renderCapLog() {
     <td style="color:var(--muted)">${c.note||''}</td>
     <td><button class="btn btn-sm btn-danger" onclick="deleteCapLog('${c.id}')">🗑</button></td>
   </tr>`).join('');
+}
+
+function renderCapPhilosophy(){
+  const el=document.getElementById('cap-philosophy'); if(!el) return;
+  const init=state.initCap||0, cur=state.currentCap||0, target=init*2;
+  const pct=init>0?Math.min(100,Math.max(0,(cur-init)/(target-init)*100)):0;
+  const reached=cur>=target, profit=cur-init;
+  el.innerHTML=`
+    <div class="section-header" style="margin-top:8px"><div class="section-title">💎 Vốn & Triết lý — x2 rút gốc · tiền chợ nuôi mãi</div></div>
+    <div class="chart-box">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px">
+        <span style="color:var(--muted)">Vốn gốc <b style="color:#fff">$${init.toLocaleString()}</b></span>
+        <span style="color:${reached?'var(--green)':'var(--muted)'}">Mốc rút gốc (x2) <b>$${target.toLocaleString()}</b></span>
+      </div>
+      <div style="height:14px;border-radius:7px;background:#0f172a;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--navy),var(--orange));transition:.4s"></div>
+      </div>
+      <div style="font-size:11px;color:var(--dim);margin-top:6px">
+        Hiện tại <b style="color:${profit>=0?'var(--green)':'var(--red)'}">$${cur.toLocaleString(undefined,{maximumFractionDigits:0})}</b> · ${pct.toFixed(0)}% tới mốc x2.
+        ${reached
+          ? `<span style="color:var(--green);font-weight:700">✅ ĐÃ ĐẠT x2 — rút vốn gốc $${init.toLocaleString()}, phần còn lại ($${profit.toLocaleString(undefined,{maximumFractionDigits:0})}) là "tiền chợ" nuôi mãi.</span>`
+          : `Còn <b>$${(target-cur).toLocaleString(undefined,{maximumFractionDigits:0})}</b> nữa để đạt x2 (rút vốn gốc, giữ tiền chợ).`}
+      </div>
+      <div style="font-size:10px;color:var(--dim);margin-top:8px;line-height:1.6;border-top:1px solid var(--border);padding-top:8px">
+        📌 <b>Triết lý vốn:</b> không bỏ thêm tiền · vào vốn → <b>x2 rút vốn gốc</b> → phần dư là "tiền chợ" nuôi mãi · <b>5 tài khoản × 1 mã</b> (3 tài khoản tích sản + 2 tài khoản rút thu nhập hàng năm) · ưu tiên hệ thống tốt, ít trượt giá.
+      </div>
+    </div>`;
 }
 
 // ─── CAP MODAL ────────────────────────────────────────────────────────────────
@@ -1620,6 +1650,7 @@ setInterval(tickRealtimeTimers, 1000);
 const BOT_FB_URL = 'https://maxs-trading-default-rtdb.asia-southeast1.firebasedatabase.app';
 const BOT_SRCS = [{k:'HL',name:'Hyperliquid Bot',emoji:'⚡'},{k:'MT5',name:'MT5 Bot (Pepperstone)',emoji:'📉'}];
 const BOT_COIN_COLORS = {BTC:'#f7931a',ETH:'#627eea',SOL:'#14f195',BNB:'#f3ba2f',BTCUSD:'#f7931a',ETHUSD:'#627eea'};
+const BOT_BENCH = {BTC:{pf:2.00,wr:57.4,r:0.94},ETH:{pf:3.79,wr:42.8,r:0.89},SOL:{pf:4.78,wr:47.5,r:0.94},BNB:{pf:2.79,wr:44.7,r:0.82},BTCUSD:{pf:2.00,wr:57.4,r:0.94},ETHUSD:{pf:3.79,wr:42.8,r:0.89}};
 const DD_HALT = 20; // ngưỡng cắt drawdown (%)
 
 function baseCoin(c){ return (c||'').replace('USDT','').replace('USD',''); }
@@ -1743,11 +1774,19 @@ function renderBotSrc(meta, src, mids){
     const w=ts.filter(t=>(t.pnl||0)>0).length, wr=(w/ts.length*100).toFixed(0);
     const r=(ts.reduce((a,t)=>a+(t.exitR||0),0)/ts.length).toFixed(2);
     const p=ts.reduce((a,t)=>a+(t.pnl||0),0);
+    const gW=ts.filter(t=>(t.pnl||0)>0).reduce((a,t)=>a+(t.pnl||0),0), gL=Math.abs(ts.filter(t=>(t.pnl||0)<0).reduce((a,t)=>a+(t.pnl||0),0));
+    const pfL=gL>0?gW/gL:(gW>0?99:0);
+    const bm=BOT_BENCH[c];
+    const edge=(bm&&bm.pf>0&&ts.length>=5)?Math.round(pfL/bm.pf*100):null;
     return `<div class="coin-card"><div class="coin-name" style="color:${BOT_COIN_COLORS[c]||'#94a3b8'}">${c}</div>
       <div class="coin-row"><span>Win Rate</span><span style="color:${wr>=50?'var(--green)':'var(--red)'}">${wr}%</span></div>
       <div class="coin-row"><span>Avg R</span><span style="color:var(--orange)">${r>=0?'+':''}${r}R</span></div>
       <div class="coin-row"><span>Lệnh</span><span>${ts.length} (${w}W/${ts.length-w}L)</span></div>
-      <div class="coin-row"><span>PnL</span><span style="color:${p>=0?'var(--green)':'var(--red)'}">${p>=0?'+':''}$${p.toFixed(2)}</span></div></div>`;
+      <div class="coin-row"><span>PnL</span><span style="color:${p>=0?'var(--green)':'var(--red)'}">${p>=0?'+':''}$${p.toFixed(2)}</span></div>
+      ${bm?`<div style="border-top:1px solid var(--border);margin-top:6px;padding-top:5px">
+        <div class="coin-row" style="font-size:10px;opacity:.6"><span>Mốc BT 9 năm</span><span>PF ${bm.pf} · WR ${bm.wr}% · ${bm.r}R</span></div>
+        <div class="coin-row"><span>Edge còn giữ</span><span style="color:${edge==null?'var(--dim)':edge>=80?'var(--green)':edge>=50?'var(--yellow)':'var(--red)'};font-weight:700">${edge==null?'cần ≥5 lệnh':edge+'%'}</span></div>
+      </div>`:''}</div>`;
   }).join('') : '<div class="empty" style="padding:16px">Chưa có lệnh đóng</div>';
 
   const closedRecent = st.closed.slice().sort((a,b)=>(b.closeTs||0)-(a.closeTs||0)).slice(0,12);
@@ -1786,7 +1825,7 @@ function renderBotSrc(meta, src, mids){
       <div class="kpi"><div class="kpi-label">Lệnh đóng</div><div class="kpi-val blue">${st.closed.length}</div></div>
     </div>
     <div class="chart-box"><div class="chart-title">📈 Equity Curve — ${meta.name}</div>${botEquitySvg(st.pts)}</div>
-    <div class="section-header" style="margin-top:4px"><div class="section-title" style="font-size:13px">📊 Theo mã</div></div>
+    <div class="section-header" style="margin-top:4px"><div class="section-title" style="font-size:13px">📊 Theo mã — Edge live vs Backtest 9 năm</div></div>
     <div class="coin-stats">${coinCards}</div>
     <div class="section-header" style="margin-top:4px"><div class="section-title" style="font-size:13px">📋 Lệnh đã đóng gần đây</div></div>
     <div class="tbl-wrap"><table style="min-width:760px"><thead><tr><th>Mã</th><th>Hướng</th><th>R</th><th>PnL</th><th>KQ</th><th>Đóng lúc</th><th>Lý do</th></tr></thead><tbody>${closedRows}</tbody></table></div>
