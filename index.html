@@ -253,7 +253,7 @@ body.light tr:hover td{background:#f2f6fc}
     <div class="vdivider"></div>
     <div class="sb-item">
       <div class="sb-label">Sizing hiện tại</div>
-      <div id="sizing-mode-display" class="mode-tag mode-6" style="margin-top:3px">6% / lệnh</div>
+      <div id="sizing-mode-display" class="mode-tag mode-6" style="margin-top:3px">5% / lệnh</div>
       <div class="sb-sub" id="sizing-usd">= $1,080.00</div>
     </div>
     <div class="vdivider"></div>
@@ -527,7 +527,7 @@ body.light tr:hover td{background:#f2f6fc}
     </div>
     <div class="check-item" onclick="toggleCheck(this,7)">
       <div class="check-dot"></div>
-      <div class="check-label"><b>B8 – Quản trị vốn xác nhận</b><br><span style="color:var(--dim);font-size:10px">Sizing 6% hoặc 10% theo streak</span></div>
+      <div class="check-label"><b>B8 – Quản trị vốn xác nhận</b><br><span style="color:var(--dim);font-size:10px">Sizing 5% (chuẩn) · 10% khi 10 lệnh gần nhất WR ≥70% và RR ≥2</span></div>
       <span class="check-status" style="color:var(--dim)">Chưa</span>
     </div>
   </div>
@@ -833,7 +833,7 @@ function getSizingMode() {
     const avgRR = closed10.reduce((s,t) => s + (t.rr||0), 0) / 10;
     if (wins / 10 >= 0.7 && avgRR >= 2) return 10;
   }
-  return 6;
+  return 5;                                  // anh Niêm 29/07: chuẩn 5%/lệnh (nâng 10% khi đạt chuẩn 10 lệnh)
 }
 
 function getSizingUsd() {
