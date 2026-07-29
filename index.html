@@ -1716,7 +1716,22 @@ async function syncMT5(manual) {
       });
       added++;
     }
-    if (added) { saveToStorage(); renderAll(); }
+    // VỐN TỰ CÂN theo ví MT5 THẬT: chỉnh "Vốn ban đầu" sao cho Vốn hiện tại = balance ví
+    // (initCap = balance − (nạp − rút trong sổ) − tổng PnL lệnh đã đóng)
+    let calibrated = false;
+    if (meta && meta.balance != null) {
+      const dep = (state.capLog || []).reduce((s, c) => s + (c.type === 'deposit' ? c.amount : -c.amount), 0);
+      const pnlSum = state.trades.filter(t => ['Chốt lời','Cắt lỗ'].includes(t.status))
+        .reduce((s, t) => s + (t.pnlUsd || 0), 0);
+      const cal = Math.round((meta.balance - dep - pnlSum) * 100) / 100;
+      if (Math.abs((state.initCap || 0) - cal) > 0.01) {
+        state.initCap = cal;
+        const ic = document.getElementById('init-cap');
+        if (ic) ic.value = cal;
+        calibrated = true;
+      }
+    }
+    if (added || calibrated) { saveToStorage(); renderAll(); }
     if (manual) alert(added ? ('Đã nhập ' + added + ' lệnh tay MT5 mới vào sổ — bấm 📝 từng lệnh để đúc kết.') : 'Không có lệnh MT5 mới.');
   } catch (e) { if (manual) alert('Lỗi đồng bộ MT5: ' + e.message); }
 }
