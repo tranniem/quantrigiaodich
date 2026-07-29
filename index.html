@@ -254,7 +254,7 @@ body.light tr:hover td{background:#f2f6fc}
     <div class="sb-item">
       <div class="sb-label">Sizing hiện tại</div>
       <div id="sizing-mode-display" class="mode-tag mode-6" style="margin-top:3px">5% / lệnh</div>
-      <div class="sb-sub" id="sizing-usd">= $1,080.00</div>
+      <div id="sizing-usd" style="font-size:22px;font-weight:800;color:var(--orange);letter-spacing:-.5px;margin-top:2px">= $0.00</div>
     </div>
     <div class="vdivider"></div>
     <div class="sb-item">
@@ -1693,11 +1693,39 @@ async function syncMT5(manual) {
     let added = 0;
     for (const [key, m] of Object.entries(tr)) {
       const id = 'mt5_' + key;
-      if (state.trades.some(t => t.id === id)) continue;
+      if (state.trades.some(t => t.id === id || t.mt5Id === id)) continue;
       const dirUp = m.side === 'BUY';
       const risk = m.sl ? Math.abs(m.entry - m.sl) : null;
       const move = m.close != null ? (m.close - m.entry) * (dirUp ? 1 : -1) : null;
       const whyStr = m.why === 'SL' ? 'chạm SL' : m.why === 'TP' ? 'chạm TP' : 'đóng tay';
+      // GHÉP với lệnh NHẬP TAY đang mở: cùng mã + cùng chiều + entry lệch ≤0.2%
+      // → điền kết quả THẬT vào chính dòng kế hoạch (giữ 8 bước, chiến lược, đúc kết)
+      const cand = state.trades.filter(t =>
+        t.src !== 'MT5' && !t.mt5Id &&
+        ['Chờ lệnh','Đang mở','Đã dời về 0','Đã dời về dương'].includes(t.status) &&
+        (t.symbol || '').toUpperCase() === (m.sym || '').toUpperCase() &&
+        (t.ordertype || t.dir || '').toUpperCase().indexOf(dirUp ? 'BUY' : 'SELL') === 0 &&
+        t.entry && Math.abs(t.entry - m.entry) / m.entry <= 0.002
+      ).sort((a, b) => Math.abs(a.entry - m.entry) - Math.abs(b.entry - m.entry))[0];
+      if (cand) {
+        cand.mt5Id = id;
+        cand.entry = m.entry;                            // giá khớp thật thay giá kế hoạch
+        if (m.sl && !cand.sl) cand.sl = m.sl;
+        if (m.tp && !cand.tp) cand.tp = m.tp;
+        cand.closePrice = m.close;
+        cand.lot = m.lot;
+        if (m.pipSl != null) cand.pipSl = m.pipSl;
+        if (m.pipTp != null) cand.pipTp = m.pipTp;
+        if (m.rrPlan != null && cand.rr == null) cand.rr = m.rrPlan;
+        if (m.rrAct != null) cand.rrActual = m.rrAct;
+        cand.pnlUsd = m.pnl; cand.pnlActual = m.pnl;
+        cand.openTime = m.openTs; cand.closeTime = m.closeTs;
+        cand.status = m.pnl >= 0 ? 'Chốt lời' : 'Cắt lỗ';
+        cand.note = (cand.note ? cand.note + ' | ' : '') + 'MT5 khớp thật: ' + whyStr +
+                    ' · risk ' + (m.riskUsd != null ? m.riskUsd + '$' : '--') + ' · phí+swap ' + m.fees + '$';
+        added++;
+        continue;
+      }
       state.trades.push({
         id: id, src: 'MT5', symbol: m.sym, dir: m.side,
         ordertype: m.side === 'BUY' ? 'Buy' : 'Sell', strat: 'MT5 tay',
