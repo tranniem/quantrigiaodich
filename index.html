@@ -327,6 +327,8 @@ body.light tr:hover td{background:#f2f6fc}
           <option>Chờ lệnh</option><option>Đang mở</option><option>Đã dời về 0</option><option>Đã dời về dương</option><option>Chốt lời</option><option>Cắt lỗ</option>
         </select>
         <button class="btn btn-sm" onclick="toggleHideClosed()" id="toggle-hide-btn">Ẩn lệnh đóng</button>
+        <button class="btn btn-sm" onclick="hideAllClosed()" title="Gắn cờ ẨN cho toàn bộ lệnh đã đóng — danh sách sạch, thống kê/vốn vẫn tính đủ">🙈 Ẩn hết lệnh đóng</button>
+        <button class="btn btn-sm" onclick="toggleShowHidden()" id="show-hidden-btn" title="Lôi các lệnh đã ẩn ra xem khi cần phân tích">👁 Hiện lệnh ẩn</button>
         <button class="btn btn-sm btn-cyan" onclick="syncMT5(true)" title="Nhập lệnh tay MT5 mới từ Firebase">⟳ MT5</button>
         <span id="mt5-sync-meta" style="font-size:11px;color:var(--dim)"></span>
       </div>
@@ -1023,6 +1025,8 @@ function deleteCapLog(id) {
 }
 
 // ─── TRADES ───────────────────────────────────────────────────────────────────
+let showHiddenTrades = false;                  // 👁 lôi lệnh đã gắn cờ ẩn ra xem
+let tradesShown = 50;                          // phân trang: mỗi lần hiện 50 lệnh
 function renderTrades() {
   const fSym = document.getElementById('filter-symbol').value;
   const fSt = document.getElementById('filter-status').value;
@@ -1030,9 +1034,15 @@ function renderTrades() {
   if (fSym) trades = trades.filter(t => t.symbol === fSym);
   if (fSt) trades = trades.filter(t => t.status === fSt);
   if (hideClosed) trades = trades.filter(t => !['Chốt lời','Cắt lỗ'].includes(t.status));
+  if (!showHiddenTrades) trades = trades.filter(t => t.hidden !== true);
   document.getElementById('toggle-hide-btn').textContent = hideClosed ? 'Hiện lệnh đóng' : 'Ẩn lệnh đóng';
+  const sh = document.getElementById('show-hidden-btn');
+  if (sh) { const nH = state.trades.filter(t => t.hidden === true).length;
+    sh.textContent = (showHiddenTrades ? '🙈 Thu lệnh ẩn lại' : '👁 Hiện lệnh ẩn') + (nH ? ' (' + nH + ')' : ''); }
   const tbody = document.getElementById('trades-tbody');
   if (!trades.length) { tbody.innerHTML = '<tr><td colspan="18" class="empty"><div class="empty-icon">📋</div>Không có lệnh nào</td></tr>'; return; }
+  const totalRows = trades.length;
+  trades = trades.slice(0, tradesShown);
   const orderBadge = {
     'Buy Limit':'badge-bl','Sell Limit':'badge-sl','Buy Stop':'badge-bs','Sell Stop':'badge-ss'
   };
@@ -1093,10 +1103,22 @@ function renderTrades() {
         </div>
       </td>
     </tr>`;
-  }).join('');
+  }).join('') + (totalRows > tradesShown
+    ? `<tr><td colspan="18" style="text-align:center;padding:10px"><button class="btn btn-sm" onclick="showMoreTrades()">⬇ Xem thêm 50 lệnh (còn ${totalRows - tradesShown})</button></td></tr>`
+    : '');
 }
 
-function toggleHideClosed() { hideClosed = !hideClosed; renderTrades(); }
+function toggleHideClosed() { hideClosed = !hideClosed; tradesShown = 50; renderTrades(); }
+function toggleShowHidden() { showHiddenTrades = !showHiddenTrades; tradesShown = 50; renderTrades(); }
+function showMoreTrades() { tradesShown += 50; renderTrades(); }
+function hideAllClosed() {
+  let n = 0;
+  state.trades.forEach(t => {
+    if (['Chốt lời','Cắt lỗ'].includes(t.status) && t.hidden !== true) { t.hidden = true; n++; }
+  });
+  saveToStorage(); renderTrades();
+  alert(n ? ('Đã ẩn ' + n + ' lệnh đóng khỏi danh sách. Thống kê & vốn VẪN tính đủ. Bấm "👁 Hiện lệnh ẩn" khi cần phân tích lại.') : 'Không có lệnh đóng nào để ẩn.');
+}
 
 // Event delegation — tất cả nút trong bảng lệnh dùng chung 1 listener
 document.addEventListener('DOMContentLoaded', () => {
