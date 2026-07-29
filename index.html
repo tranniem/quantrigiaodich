@@ -279,6 +279,7 @@ body.light tr:hover td{background:#f2f6fc}
     <div class="kpi"><div class="kpi-label">RR trung bình</div><div class="kpi-val orange" id="kpi-rr">--</div><div class="kpi-sub">thực tế đạt</div></div>
     <div class="kpi"><div class="kpi-label">Tổng PnL ($)</div><div class="kpi-val" id="kpi-pnl">$0.00</div><div class="kpi-sub" id="kpi-pnl-vnd">≈ --</div></div>
     <div class="kpi"><div class="kpi-label">Hiệu suất kép</div><div class="kpi-val cyan" id="kpi-compound">+0.00%</div><div class="kpi-sub">equity growth</div></div>
+    <div class="kpi"><div class="kpi-label">Drawdown (DD)</div><div class="kpi-val" id="kpi-dd">--</div><div class="kpi-sub" id="kpi-dd-sub">hiện tại từ đỉnh vốn</div></div>
     <div class="kpi"><div class="kpi-label">Tổng lệnh</div><div class="kpi-val blue" id="kpi-total">0</div><div class="kpi-sub" id="kpi-open">0 đang mở</div></div>
     <div class="kpi"><div class="kpi-label">TG giữ BQ</div><div class="kpi-val yellow" id="kpi-holdtime">--</div><div class="kpi-sub">lệnh đã đóng</div></div>
   </div>
@@ -904,6 +905,24 @@ function renderDashboard() {
   document.getElementById('kpi-compound').className = 'kpi-val ' + (compound >= 0 ? 'cyan' : 'red');
   document.getElementById('kpi-total').textContent = state.trades.length;
   document.getElementById('kpi-open').textContent = openCount + ' đang mở';
+
+  // DD — thụt giảm tài khoản: hiện tại (từ đỉnh vốn) + sâu nhất lịch sử sổ (theo đường vốn lệnh đóng)
+  const evs = (state.equityLog || []).map(e => e.v);
+  let ddPeak = -Infinity, maxDD = 0;
+  evs.forEach(v => {
+    if (v > ddPeak) ddPeak = v;
+    const dd = ddPeak > 0 ? (ddPeak - v) / ddPeak * 100 : 0;
+    if (dd > maxDD) maxDD = dd;
+  });
+  const lastV = evs.length ? evs[evs.length - 1] : 0;
+  const curDD = ddPeak > 0 ? Math.max(0, (ddPeak - lastV) / ddPeak * 100) : 0;
+  const dEl = document.getElementById('kpi-dd');
+  if (dEl) {
+    dEl.textContent = '-' + curDD.toFixed(1) + '%';
+    dEl.className = 'kpi-val ' + (curDD < 5 ? 'green' : curDD < 15 ? 'yellow' : 'red');
+    document.getElementById('kpi-dd-sub').textContent =
+      'sâu nhất: -' + maxDD.toFixed(1) + '% · đỉnh $' + (ddPeak > 0 ? Math.round(ddPeak).toLocaleString('en-US') : '--');
+  }
 
   const closedT = closed.filter(t => t.openTime && t.closeTime);
   document.getElementById('kpi-holdtime').textContent = closedT.length
