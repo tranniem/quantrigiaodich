@@ -327,6 +327,8 @@ body.light tr:hover td{background:#f2f6fc}
           <option>Chờ lệnh</option><option>Đang mở</option><option>Đã dời về 0</option><option>Đã dời về dương</option><option>Chốt lời</option><option>Cắt lỗ</option>
         </select>
         <button class="btn btn-sm" onclick="toggleHideClosed()" id="toggle-hide-btn">Ẩn lệnh đóng</button>
+        <button class="btn btn-sm btn-cyan" onclick="syncMT5(true)" title="Nhập lệnh tay MT5 mới từ Firebase">⟳ MT5</button>
+        <span id="mt5-sync-meta" style="font-size:11px;color:var(--dim)"></span>
       </div>
       <button class="btn btn-orange" onclick="openTradeModal()">+ Thêm lệnh</button>
     </div>
@@ -756,6 +758,7 @@ window.onload = () => {
   loadFromStorage();
   fetchUsdVnd();
   renderAll();
+  if (typeof syncMT5 === 'function') syncMT5(false);   // nhập lệnh tay MT5 mới (sau khi đã nạp sổ)
   document.getElementById('f-open').value = new Date().toISOString().slice(0,16);
   document.getElementById('l-date').value = new Date().toISOString().slice(0,10);
   document.getElementById('cap-date').value = new Date().toISOString().slice(0,10);
@@ -1673,6 +1676,47 @@ setInterval(tickRealtimeTimers, 1000);
 <script>
 // ═══ BOT PERFORMANCE — Phase 1: GIÁM SÁT SỐNG (Firebase realtime + giá Binance) ═══
 const BOT_FB_URL = 'https://maxs-trading-default-rtdb.asia-southeast1.firebasedatabase.app';
+
+// ─── MT5 SYNC — lệnh TAY đã đóng từ terminal (journal_sync.py trên PC đẩy lên Firebase journal/mt5) ───
+// Mỗi lệnh MT5 được NHẬP thành lệnh thật trong sổ (id = mt5_<tài khoản>_<ticket>, không bao giờ trùng)
+// → dùng được mọi tính năng sẵn có: sửa, 8 BƯỚC, Đúc kết 📝, thống kê, equity. Số liệu gốc nằm ở note.
+async function syncMT5(manual) {
+  try {
+    const [tr, meta] = await Promise.all([
+      fetch(BOT_FB_URL + '/journal/mt5.json?t=' + Date.now()).then(r => r.json()),
+      fetch(BOT_FB_URL + '/journal/mt5meta.json?t=' + Date.now()).then(r => r.json())
+    ]);
+    const el = document.getElementById('mt5-sync-meta');
+    if (meta && el) el.textContent = 'MT5 ' + meta.acc + (meta.demo ? ' (demo)' : ' (THẬT)') +
+      ' · sync ' + new Date(meta.lastSync).toLocaleTimeString('vi-VN');
+    if (!tr) { if (manual) alert('Chưa có lệnh tay MT5 nào trên Firebase — kiểm tra terminal MT5 đang mở và Task "MAXS-journal-sync-MT5".'); return; }
+    let added = 0;
+    for (const [key, m] of Object.entries(tr)) {
+      const id = 'mt5_' + key;
+      if (state.trades.some(t => t.id === id)) continue;
+      const dirUp = m.side === 'BUY';
+      const risk = m.sl ? Math.abs(m.entry - m.sl) : null;
+      const move = m.close != null ? (m.close - m.entry) * (dirUp ? 1 : -1) : null;
+      state.trades.push({
+        id: id, src: 'MT5', symbol: m.sym, dir: m.side,
+        ordertype: m.side === 'BUY' ? 'Buy' : 'Sell', strat: 'MT5 tay',
+        entry: m.entry, sl: m.sl || null, tp: m.tp || null, closePrice: m.close,
+        lot: m.lot, rr: null,
+        rrActual: (risk && move != null) ? move / risk : null,
+        pnlUsd: m.pnl, pnlActual: m.pnl,
+        openTime: m.openTs, closeTime: m.closeTs,
+        status: m.pnl >= 0 ? 'Chốt lời' : 'Cắt lỗ',
+        checks: [0,0,0,0,0,0,0,0],
+        note: 'MT5 ' + m.acc + (m.demo ? ' (demo)' : ' (THẬT)') + ' · ' + m.server +
+              ' · gross ' + m.gross + '$ · phí+swap ' + m.fees + '$' + (m.cmt ? ' · ' + m.cmt : '')
+      });
+      added++;
+    }
+    if (added) { saveToStorage(); renderAll(); }
+    if (manual) alert(added ? ('Đã nhập ' + added + ' lệnh tay MT5 mới vào sổ — bấm 📝 từng lệnh để đúc kết.') : 'Không có lệnh MT5 mới.');
+  } catch (e) { if (manual) alert('Lỗi đồng bộ MT5: ' + e.message); }
+}
+setInterval(function(){ syncMT5(false); }, 5 * 60 * 1000);   // tự nhập lệnh mới mỗi 5 phút khi app đang mở
 const BOT_SRCS = [{k:'HL',name:'Hyperliquid Bot',emoji:'⚡'},{k:'MT5',name:'MT5 Bot (Pepperstone)',emoji:'📉'}];
 const BOT_COIN_COLORS = {BTC:'#f7931a',ETH:'#627eea',SOL:'#14f195',BNB:'#f3ba2f',BTCUSD:'#f7931a',ETHUSD:'#627eea'};
 const BOT_BENCH = {BTC:{pf:2.00,wr:57.4,r:0.94},ETH:{pf:3.79,wr:42.8,r:0.89},SOL:{pf:4.78,wr:47.5,r:0.94},BNB:{pf:2.79,wr:44.7,r:0.82},BTCUSD:{pf:2.00,wr:57.4,r:0.94},ETHUSD:{pf:3.79,wr:42.8,r:0.89}};
