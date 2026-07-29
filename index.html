@@ -950,10 +950,12 @@ function renderDashboard() {
     curLs = t.status === 'Cắt lỗ' ? curLs + 1 : 0;
     if (curLs > lstreak) lstreak = curLs;
   });
-  // kỷ luật: % lệnh có SL đặt trước · % đủ 8 bước · WR khi đủ 8 bước
+  // kỷ luật (anh Niêm 29/07): 2 thứ BẤT BIẾN — ① đặt SL ② vốn vào đúng % (5%±1) — chiến lược đổi được, 2 cái này thì không
   const pctSL = closed.length ? closed.filter(t => t.sl).length / closed.length * 100 : 0;
-  const full8 = closed.filter(t => (t.checks||[]).filter(c => c === 1).length === 8);
-  const wr8 = full8.length ? full8.filter(t => t.status === 'Chốt lời').length / full8.length * 100 : null;
+  const chronoAll = [...closed].sort((a,b) => (a.closeTime||0) - (b.closeTime||0));
+  const equityAt = ts => { let eq = state.initCap; for (const t of chronoAll) { if ((t.closeTime||0) < ts) eq += (t.pnlUsd||0); } return Math.max(1, eq); };
+  const measurable = closed.filter(t => (t.riskUsd || t.sizingUsd) && t.openTime);
+  const okRisk = measurable.filter(t => { const p = (t.riskUsd || t.sizingUsd) / equityAt(t.openTime) * 100; return p >= 4 && p <= 6; });
   const exEl = document.getElementById('kpi-expect');
   if (exEl) {
     exEl.textContent = (expect >= 0 ? '+' : '') + '$' + expect.toFixed(2);
@@ -965,8 +967,9 @@ function renderDashboard() {
     document.getElementById('kpi-payoff').textContent = avgL > 0 ? ('payoff 1 : ' + (avgW / avgL).toFixed(2)) : 'payoff --';
     document.getElementById('kpi-lstreak').textContent = lstreak + ' lệnh';
     document.getElementById('kpi-discipline').textContent = pctSL.toFixed(0) + '% có SL';
-    document.getElementById('kpi-discipline-sub').textContent =
-      'đủ 8 bước: ' + full8.length + '/' + closed.length + (wr8 != null ? ' · WR khi đủ 8 bước: ' + wr8.toFixed(0) + '%' : '');
+    document.getElementById('kpi-discipline-sub').textContent = measurable.length
+      ? 'vốn đúng 5%±1: ' + okRisk.length + '/' + measurable.length + ' lệnh đo được'
+      : 'vốn đúng %: chưa đo được (cần SL để biết risk$)';
   }
 
   renderEquity();
@@ -1772,10 +1775,14 @@ async function syncMT5(manual) {
     if (meta && el) el.textContent = 'MT5 ' + meta.acc + (meta.demo ? ' (demo)' : ' (THẬT)') +
       ' · sync ' + new Date(meta.lastSync).toLocaleTimeString('vi-VN');
     if (!tr) { if (manual) alert('Chưa có lệnh tay MT5 nào trên Firebase — kiểm tra terminal MT5 đang mở và Task "MAXS-journal-sync-MT5".'); return; }
-    let added = 0;
+    let added = 0, backfilled = false;
     for (const [key, m] of Object.entries(tr)) {
       const id = 'mt5_' + key;
-      if (state.trades.some(t => t.id === id || t.mt5Id === id)) continue;
+      const exist = state.trades.find(t => t.id === id || t.mt5Id === id);
+      if (exist) {                                     // lệnh đã có: bù riskUsd cho bản nhập trước đây
+        if (exist.riskUsd == null && m.riskUsd != null) { exist.riskUsd = m.riskUsd; backfilled = true; }
+        continue;
+      }
       const dirUp = m.side === 'BUY';
       const risk = m.sl ? Math.abs(m.entry - m.sl) : null;
       const move = m.close != null ? (m.close - m.entry) * (dirUp ? 1 : -1) : null;
@@ -1800,6 +1807,7 @@ async function syncMT5(manual) {
         if (m.pipTp != null) cand.pipTp = m.pipTp;
         if (m.rrPlan != null && cand.rr == null) cand.rr = m.rrPlan;
         if (m.rrAct != null) cand.rrActual = m.rrAct;
+        if (m.riskUsd != null) cand.riskUsd = m.riskUsd;
         cand.pnlUsd = m.pnl; cand.pnlActual = m.pnl;
         cand.openTime = m.openTs; cand.closeTime = m.closeTs;
         cand.status = m.pnl >= 0 ? 'Chốt lời' : 'Cắt lỗ';
@@ -1813,6 +1821,7 @@ async function syncMT5(manual) {
         ordertype: m.side === 'BUY' ? 'Buy' : 'Sell', strat: 'MT5 tay',
         entry: m.entry, sl: m.sl || null, tp: m.tp || null, closePrice: m.close,
         lot: m.lot, pipSl: m.pipSl != null ? m.pipSl : null, pipTp: m.pipTp != null ? m.pipTp : null,
+        riskUsd: m.riskUsd != null ? m.riskUsd : null,
         rr: m.rrPlan != null ? m.rrPlan : null,
         rrActual: m.rrAct != null ? m.rrAct : ((risk && move != null) ? move / risk : null),
         pnlUsd: m.pnl, pnlActual: m.pnl,
@@ -1841,7 +1850,7 @@ async function syncMT5(manual) {
         calibrated = true;
       }
     }
-    if (added || calibrated) { saveToStorage(); renderAll(); }
+    if (added || calibrated || backfilled) { saveToStorage(); renderAll(); }
     if (manual) alert(added ? ('Đã nhập ' + added + ' lệnh tay MT5 mới vào sổ — bấm 📝 từng lệnh để đúc kết.') : 'Không có lệnh MT5 mới.');
   } catch (e) { if (manual) alert('Lỗi đồng bộ MT5: ' + e.message); }
 }
