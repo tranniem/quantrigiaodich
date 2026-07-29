@@ -283,6 +283,13 @@ body.light tr:hover td{background:#f2f6fc}
     <div class="kpi"><div class="kpi-label">Tổng lệnh</div><div class="kpi-val blue" id="kpi-total">0</div><div class="kpi-sub" id="kpi-open">0 đang mở</div></div>
     <div class="kpi"><div class="kpi-label">TG giữ BQ</div><div class="kpi-val yellow" id="kpi-holdtime">--</div><div class="kpi-sub">lệnh đã đóng</div></div>
   </div>
+  <div class="kpi-grid">
+    <div class="kpi"><div class="kpi-label">Kỳ vọng / lệnh</div><div class="kpi-val" id="kpi-expect">--</div><div class="kpi-sub">PnL ròng TB mỗi lệnh đóng — số đo KỸ NĂNG</div></div>
+    <div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-val" id="kpi-pf">--</div><div class="kpi-sub">lãi gộp ÷ lỗ gộp (≥1.5 khoẻ)</div></div>
+    <div class="kpi"><div class="kpi-label">TB thắng / TB thua</div><div class="kpi-val orange" id="kpi-avgwl">--</div><div class="kpi-sub" id="kpi-payoff">payoff --</div></div>
+    <div class="kpi"><div class="kpi-label">Chuỗi thua dài nhất</div><div class="kpi-val red" id="kpi-lstreak">--</div><div class="kpi-sub">liều thuốc thử tâm lý + size</div></div>
+    <div class="kpi"><div class="kpi-label">Kỷ luật</div><div class="kpi-val cyan" id="kpi-discipline">--</div><div class="kpi-sub" id="kpi-discipline-sub">% lệnh có SL đặt trước</div></div>
+  </div>
 
   <!-- EQUITY CHART -->
   <div class="chart-box">
@@ -927,6 +934,40 @@ function renderDashboard() {
   const closedT = closed.filter(t => t.openTime && t.closeTime);
   document.getElementById('kpi-holdtime').textContent = closedT.length
     ? fmtHold(closedT.reduce((s,t) => s + (t.closeTime - t.openTime), 0) / closedT.length) : '--';
+
+  // ─── HÀNG SỨC KHOẺ & KỸ NĂNG ───
+  const losses = closed.filter(t => t.status === 'Cắt lỗ');
+  const grossW = wins.reduce((s,t) => s + (t.pnlUsd||0), 0);
+  const grossL = Math.abs(losses.reduce((s,t) => s + (t.pnlUsd||0), 0));
+  const closedPnl = closed.reduce((s,t) => s + (t.pnlUsd||0), 0);
+  const expect = closed.length ? closedPnl / closed.length : 0;        // kỳ vọng/lệnh ($ ròng)
+  const pf = grossL > 0 ? grossW / grossL : (grossW > 0 ? 99 : 0);
+  const avgW = wins.length ? grossW / wins.length : 0;
+  const avgL = losses.length ? grossL / losses.length : 0;
+  // chuỗi thua dài nhất (theo thứ tự thời gian)
+  let lstreak = 0, curLs = 0;
+  [...closed].sort((a,b) => (a.openTime||0) - (b.openTime||0)).forEach(t => {
+    curLs = t.status === 'Cắt lỗ' ? curLs + 1 : 0;
+    if (curLs > lstreak) lstreak = curLs;
+  });
+  // kỷ luật: % lệnh có SL đặt trước · % đủ 8 bước · WR khi đủ 8 bước
+  const pctSL = closed.length ? closed.filter(t => t.sl).length / closed.length * 100 : 0;
+  const full8 = closed.filter(t => (t.checks||[]).filter(c => c === 1).length === 8);
+  const wr8 = full8.length ? full8.filter(t => t.status === 'Chốt lời').length / full8.length * 100 : null;
+  const exEl = document.getElementById('kpi-expect');
+  if (exEl) {
+    exEl.textContent = (expect >= 0 ? '+' : '') + '$' + expect.toFixed(2);
+    exEl.className = 'kpi-val ' + (expect >= 0 ? 'green' : 'red');
+    const pfEl = document.getElementById('kpi-pf');
+    pfEl.textContent = pf >= 99 ? '∞' : pf.toFixed(2);
+    pfEl.className = 'kpi-val ' + (pf >= 1.5 ? 'green' : pf >= 1 ? 'yellow' : 'red');
+    document.getElementById('kpi-avgwl').textContent = '+$' + avgW.toFixed(0) + ' / -$' + avgL.toFixed(0);
+    document.getElementById('kpi-payoff').textContent = avgL > 0 ? ('payoff 1 : ' + (avgW / avgL).toFixed(2)) : 'payoff --';
+    document.getElementById('kpi-lstreak').textContent = lstreak + ' lệnh';
+    document.getElementById('kpi-discipline').textContent = pctSL.toFixed(0) + '% có SL';
+    document.getElementById('kpi-discipline-sub').textContent =
+      'đủ 8 bước: ' + full8.length + '/' + closed.length + (wr8 != null ? ' · WR khi đủ 8 bước: ' + wr8.toFixed(0) + '%' : '');
+  }
 
   renderEquity();
   renderCoinStats();
