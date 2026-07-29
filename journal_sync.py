@@ -49,6 +49,14 @@ def main():
 
     deals = mt5.history_deals_get(FROM_DATE, datetime.now() + timedelta(days=1)) or []
     mt5_orders = {o.ticket: o for o in (mt5.history_orders_get(FROM_DATE, datetime.now() + timedelta(days=1)) or [])}
+    # thong so tung symbol — de TU TINH pip/RR/risk$ cho moi thi truong (FX, vang, chi so, dau...)
+    syminfo = {}
+    for s in {d.symbol for d in deals if d.symbol}:
+        si = mt5.symbol_info(s)
+        if si:
+            syminfo[s] = {"point": si.point, "digits": si.digits,
+                          "tick_size": si.trade_tick_size or si.point,
+                          "tick_value": si.trade_tick_value}
     mt5.shutdown()
 
     # gom deal theo position — chi lenh TAY (magic 0), bo deal so du/nap rut
@@ -83,6 +91,27 @@ def main():
             if o:
                 sl = o.sl or sl
                 tp = o.tp or tp
+        # ly do dong (reason cua deal ra): 4 = cham SL, 5 = cham TP
+        why = "tay"
+        if any(getattr(d, "reason", 0) == 4 for d in outs):
+            why = "SL"
+        elif any(getattr(d, "reason", 0) == 5 for d in outs):
+            why = "TP"
+        # === TU TINH pip / RR / risk$ theo thong so symbol (moi thi truong) ===
+        si = syminfo.get(ins[0].symbol, {})
+        point, digits = si.get("point", 0), si.get("digits", 0)
+        pip = point * 10 if digits in (5, 3, 2) else (point or None)   # FX 5/3 so le, vang 2 -> 1 pip = 10 point
+        sgn = 1 if side == "BUY" else -1
+        pip_sl = round(abs(entry_px - sl) / pip, 1) if (sl and pip) else None
+        pip_tp = round(abs(tp - entry_px) / pip, 1) if (tp and pip) else None
+        risk_usd = None
+        if sl and si.get("tick_size") and si.get("tick_value"):
+            risk_usd = round(abs(entry_px - sl) / si["tick_size"] * si["tick_value"] * vin, 2)
+        rr_plan = round(abs(tp - entry_px) / abs(entry_px - sl), 2) if (sl and tp and entry_px != sl) else None
+        rr_act = None
+        if sl and close_px is not None and entry_px != sl:
+            rr_act = round((close_px - entry_px) * sgn / abs(entry_px - sl), 2)   # R theo gia
+        rr_money = round((gross + fees) / risk_usd, 2) if risk_usd else None      # R theo tien rong (vi that)
         key = f"{ai.login}_{pid}"
         out[key] = {
             "src": "MT5", "acc": ai.login, "server": ai.server,
@@ -90,6 +119,8 @@ def main():
             "sym": ins[0].symbol, "side": side, "lot": round(vin, 2),
             "entry": round(entry_px, 5), "close": round(close_px, 5) if close_px else None,
             "sl": sl or None, "tp": tp or None,
+            "pipSl": pip_sl, "pipTp": pip_tp, "riskUsd": risk_usd,
+            "rrPlan": rr_plan, "rrAct": rr_act, "rrMoney": rr_money, "why": why,
             "openTs": min(d.time_msc for d in ins), "closeTs": max(d.time_msc for d in outs),
             "pnl": round(gross + fees, 2), "gross": round(gross, 2), "fees": round(fees, 2),
             "cmt": (ins[0].comment or "").strip() or None,

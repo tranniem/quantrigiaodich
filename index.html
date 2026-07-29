@@ -1697,17 +1697,21 @@ async function syncMT5(manual) {
       const dirUp = m.side === 'BUY';
       const risk = m.sl ? Math.abs(m.entry - m.sl) : null;
       const move = m.close != null ? (m.close - m.entry) * (dirUp ? 1 : -1) : null;
+      const whyStr = m.why === 'SL' ? 'chạm SL' : m.why === 'TP' ? 'chạm TP' : 'đóng tay';
       state.trades.push({
         id: id, src: 'MT5', symbol: m.sym, dir: m.side,
         ordertype: m.side === 'BUY' ? 'Buy' : 'Sell', strat: 'MT5 tay',
         entry: m.entry, sl: m.sl || null, tp: m.tp || null, closePrice: m.close,
-        lot: m.lot, rr: null,
-        rrActual: (risk && move != null) ? move / risk : null,
+        lot: m.lot, pipSl: m.pipSl != null ? m.pipSl : null, pipTp: m.pipTp != null ? m.pipTp : null,
+        rr: m.rrPlan != null ? m.rrPlan : null,
+        rrActual: m.rrAct != null ? m.rrAct : ((risk && move != null) ? move / risk : null),
         pnlUsd: m.pnl, pnlActual: m.pnl,
         openTime: m.openTs, closeTime: m.closeTs,
         status: m.pnl >= 0 ? 'Chốt lời' : 'Cắt lỗ',
         checks: [0,0,0,0,0,0,0,0],
-        note: 'MT5 ' + m.acc + (m.demo ? ' (demo)' : ' (THẬT)') + ' · ' + m.server +
+        note: 'MT5 ' + m.acc + (m.demo ? ' (demo)' : ' (THẬT)') + ' · ' + whyStr +
+              (m.riskUsd != null ? ' · risk ' + m.riskUsd + '$' : '') +
+              (m.rrMoney != null ? ' · R tiền ròng ' + (m.rrMoney >= 0 ? '+' : '') + m.rrMoney : '') +
               ' · gross ' + m.gross + '$ · phí+swap ' + m.fees + '$' + (m.cmt ? ' · ' + m.cmt : '')
       });
       added++;
