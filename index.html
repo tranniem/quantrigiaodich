@@ -454,7 +454,7 @@ body.light tr:hover td{background:#f2f6fc}
     <div class="form-group">
       <label>Chiến lược</label>
       <select id="f-strat">
-        <option>Fibo chuỗi</option><option>Breakout (BO)</option><option>MA</option>
+        <option>Rũ đổ (15')</option><option>Fibo chuỗi</option><option>Breakout (BO)</option><option>MA</option>
       </select>
     </div>
     <div class="form-group">
@@ -497,47 +497,47 @@ body.light tr:hover td{background:#f2f6fc}
     <div style="font-size:10px;color:var(--dim);margin-top:8px">PnL & RR chuyển sang thực tế khi có giá đóng • Lot theo pip SL và sizing vốn hiện tại • TG giữ cập nhật realtime</div>
   </div>
 
-  <!-- CHECKLIST 8 BƯỚC -->
-  <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">✅ Checklist Bát Đại Đầu Tư – 8 bước MAXS</div>
+  <!-- CHECKLIST 8 CỔNG — chiến lược Rũ đổ 15' (anh Niêm tự đúc, 30/07/2026) -->
+  <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">✅ 8 cổng vào lệnh — Rũ đổ 15' MAXS</div>
   <div class="checklist" id="bat-dai-checklist">
     <div class="check-item" onclick="toggleCheck(this,0)">
       <div class="check-dot"></div>
-      <div class="check-label"><b>B1 – Xu hướng tổng thể</b><br><span style="color:var(--dim);font-size:10px">Monthly/Weekly/Daily aligned</span></div>
+      <div class="check-label"><b>C1 – Mẫu hình RŨ ĐỔ đẹp, rõ ràng</b><br><span style="color:var(--dim);font-size:10px">Xấu = bỏ. Không sợ thiếu cơ hội mà vào liều</span></div>
       <span class="check-status" style="color:var(--dim)">Chưa</span>
     </div>
     <div class="check-item" onclick="toggleCheck(this,1)">
       <div class="check-dot"></div>
-      <div class="check-label"><b>B2 – Xác định sóng</b><br><span style="color:var(--dim);font-size:10px">Wave phase hiện tại</span></div>
+      <div class="check-label"><b>C2 – Thị trường biên độ đẹp</b><br><span style="color:var(--dim);font-size:10px">Đủ dao động để chạy tới TP, không lờ đờ</span></div>
       <span class="check-status" style="color:var(--dim)">Chưa</span>
     </div>
     <div class="check-item" onclick="toggleCheck(this,2)">
       <div class="check-dot"></div>
-      <div class="check-label"><b>B3 – Biên độ hồi (Fibo)</b><br><span style="color:var(--dim);font-size:10px">0.236/0.382/0.5/0.618 – hồi sâu/nông</span></div>
+      <div class="check-label"><b>C3 – Xu hướng THUẬN đa khung</b><br><span style="color:var(--dim);font-size:10px">15' cùng chiều với 1H / 4H / D</span></div>
       <span class="check-status" style="color:var(--dim)">Chưa</span>
     </div>
     <div class="check-item" onclick="toggleCheck(this,3)">
       <div class="check-dot"></div>
-      <div class="check-label"><b>B4 – Thời gian hồi</b><br><span style="color:var(--dim);font-size:10px">Time Fibo – hồi ít/hồi nhiều</span></div>
+      <div class="check-label"><b>C4 – Không dính mắc</b><br><span style="color:var(--dim);font-size:10px">Không nghiện 1 thị trường · không gỡ 1 lệnh cũ</span></div>
       <span class="check-status" style="color:var(--dim)">Chưa</span>
     </div>
     <div class="check-item" onclick="toggleCheck(this,4)">
       <div class="check-dot"></div>
-      <div class="check-label"><b>B5 – Nhịp 3–4 hình thành</b><br><span style="color:var(--dim);font-size:10px">Nhịp xác nhận đủ điều kiện</span></div>
+      <div class="check-label"><b>C5 – SL chấm TRƯỚC, đặt trong lệnh</b><br><span style="color:var(--dim);font-size:10px">Biết điểm "kèo sai" trước khi bấm Buy/Sell</span></div>
       <span class="check-status" style="color:var(--dim)">Chưa</span>
     </div>
     <div class="check-item" onclick="toggleCheck(this,5)">
       <div class="check-dot"></div>
-      <div class="check-label"><b>B6 – Nến đảo chiều + HA/MA10W</b><br><span style="color:var(--dim);font-size:10px">Signal xác nhận đảo chiều</span></div>
+      <div class="check-label"><b>C6 – Size theo số cam 5%</b><br><span style="color:var(--dim);font-size:10px">Lot = sizing $ ÷ khoảng SL — không làm tròn lên</span></div>
       <span class="check-status" style="color:var(--dim)">Chưa</span>
     </div>
     <div class="check-item" onclick="toggleCheck(this,6)">
       <div class="check-dot"></div>
-      <div class="check-label"><b>B7 – MACD + Stochastic align</b><br><span style="color:var(--dim);font-size:10px">Daily / 4H / 1H đồng thuận</span></div>
+      <div class="check-label"><b>C7 – Kế hoạch thoát viết trước</b><br><span style="color:var(--dim);font-size:10px">TP với RR ≥ 1:2 · không quyết định giữa nến</span></div>
       <span class="check-status" style="color:var(--dim)">Chưa</span>
     </div>
     <div class="check-item" onclick="toggleCheck(this,7)">
       <div class="check-dot"></div>
-      <div class="check-label"><b>B8 – Quản trị vốn xác nhận</b><br><span style="color:var(--dim);font-size:10px">Sizing 5% (chuẩn) · 10% khi 10 lệnh gần nhất WR ≥70% và RR ≥2</span></div>
+      <div class="check-label"><b>C8 – Trạng thái ổn</b><br><span style="color:var(--dim);font-size:10px">Không FOMO, không gỡ lỗ · thua 3 lệnh liên tiếp = nghỉ hôm nay</span></div>
       <span class="check-status" style="color:var(--dim)">Chưa</span>
     </div>
   </div>
