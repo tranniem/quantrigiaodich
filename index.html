@@ -328,7 +328,7 @@ body.light tr:hover td{background:#f2f6fc}
       <div class="filter-row" style="margin:0">
         <select id="filter-symbol" onchange="renderTrades()">
           <option value="">Tất cả mã</option>
-          <option>BTCUSD</option><option>ETHUSD</option><option>XAUUSD</option><option>USOILUSD</option><option>XAGUSD</option>
+          <option>BTCUSD</option><option>ETHUSD</option><option>XAUUSD</option><option>USOILUSD</option><option>XAGUSD</option><option>EURUSD</option><option>USDJPY</option>
         </select>
         <select id="filter-status" onchange="renderTrades()">
           <option value="">Tất cả TT</option>
@@ -442,7 +442,7 @@ body.light tr:hover td{background:#f2f6fc}
     <div class="form-group">
       <label>Mã giao dịch</label>
       <select id="f-symbol" onchange="calcLot()">
-        <option>BTCUSD</option><option>ETHUSD</option><option>XAUUSD</option><option>USOILUSD</option><option>XAGUSD</option>
+        <option>BTCUSD</option><option>ETHUSD</option><option>XAUUSD</option><option>USOILUSD</option><option>XAGUSD</option><option>EURUSD</option><option>USDJPY</option>
       </select>
     </div>
     <div class="form-group">
@@ -611,7 +611,7 @@ body.light tr:hover td{background:#f2f6fc}
       <label>Mã liên quan</label>
       <select id="l-symbol">
         <option value="">-- Không gắn mã --</option>
-        <option>BTCUSD</option><option>ETHUSD</option><option>XAUUSD</option><option>USOILUSD</option><option>XAGUSD</option>
+        <option>BTCUSD</option><option>ETHUSD</option><option>XAUUSD</option><option>USOILUSD</option><option>XAGUSD</option><option>EURUSD</option><option>USDJPY</option>
       </select>
     </div>
     <div class="form-group">
@@ -1226,16 +1226,24 @@ function openTradeModal(editId) {
   document.getElementById('trade-modal').classList.add('open');
 }
 
+// Dropdown không có sẵn giá trị (vd USDJPY, 'MT5 tay') → tự thêm option, không để mất khi lưu
+function setSelVal(id, val) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (val && ![...el.options].some(o => o.value === val)) el.add(new Option(val, val));
+  el.value = val || '';
+}
+
 function editTrade(id) {
   const t = state.trades.find(x => x.id === id);
   if (!t) return;
   openTradeModal(id);
-  document.getElementById('f-symbol').value = t.symbol;
+  setSelVal('f-symbol', t.symbol);
   // handle old 'dir' field
   const ot = t.ordertype || (t.dir === 'Buy' ? 'Buy Limit' : 'Sell Limit');
-  document.getElementById('f-ordertype').value = ot;
-  document.getElementById('f-strat').value = t.strat || 'Fibo chuỗi';
-  document.getElementById('f-status').value = t.status;
+  setSelVal('f-ordertype', ot);
+  setSelVal('f-strat', t.strat || 'Fibo chuỗi');
+  setSelVal('f-status', t.status);
   document.getElementById('f-entry').value = t.entry || '';
   document.getElementById('f-sl').value = t.sl || '';
   document.getElementById('f-tp').value = t.tp || '';
@@ -1779,8 +1787,11 @@ async function syncMT5(manual) {
     for (const [key, m] of Object.entries(tr)) {
       const id = 'mt5_' + key;
       const exist = state.trades.find(t => t.id === id || t.mt5Id === id);
-      if (exist) {                                     // lệnh đã có: bù riskUsd cho bản nhập trước đây
+      if (exist) {                                     // lệnh đã có: bù dữ liệu thiếu (riskUsd, mã bị xoá do sửa form cũ...)
         if (exist.riskUsd == null && m.riskUsd != null) { exist.riskUsd = m.riskUsd; backfilled = true; }
+        if (!exist.symbol && m.sym) { exist.symbol = m.sym; backfilled = true; }
+        if (!exist.ordertype && m.side) { exist.ordertype = m.side === 'BUY' ? 'Buy' : 'Sell'; backfilled = true; }
+        if (!exist.strat && exist.id === id) { exist.strat = 'MT5 tay'; backfilled = true; }
         continue;
       }
       const dirUp = m.side === 'BUY';
@@ -1792,12 +1803,13 @@ async function syncMT5(manual) {
       const cand = state.trades.filter(t =>
         t.src !== 'MT5' && !t.mt5Id &&
         ['Chờ lệnh','Đang mở','Đã dời về 0','Đã dời về dương'].includes(t.status) &&
-        (t.symbol || '').toUpperCase() === (m.sym || '').toUpperCase() &&
+        (!t.symbol || (t.symbol || '').toUpperCase() === (m.sym || '').toUpperCase()) &&
         (t.ordertype || t.dir || '').toUpperCase().indexOf(dirUp ? 'BUY' : 'SELL') === 0 &&
         t.entry && Math.abs(t.entry - m.entry) / m.entry <= 0.002
       ).sort((a, b) => Math.abs(a.entry - m.entry) - Math.abs(b.entry - m.entry))[0];
       if (cand) {
         cand.mt5Id = id;
+        cand.symbol = m.sym;                             // tự điền mã từ MT5 (kể cả khi kế hoạch bỏ trống)
         cand.entry = m.entry;                            // giá khớp thật thay giá kế hoạch
         if (m.sl && !cand.sl) cand.sl = m.sl;
         if (m.tp && !cand.tp) cand.tp = m.tp;
