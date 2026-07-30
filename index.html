@@ -328,7 +328,11 @@ body.light tr:hover td{background:#f2f6fc}
       <div class="filter-row" style="margin:0">
         <select id="filter-symbol" onchange="renderTrades()">
           <option value="">Tất cả mã</option>
-          <option>BTCUSD</option><option>ETHUSD</option><option>XAUUSD</option><option>USOILUSD</option><option>XAGUSD</option><option>EURUSD</option><option>USDJPY</option>
+          <optgroup label="Crypto"><option>BTCUSD</option><option>ETHUSD</option><option>BNBUSD</option><option>SUIUSD</option><option>HYPEUSD</option><option>LTCUSD</option></optgroup>
+        <optgroup label="Kim loại"><option>XAUUSD</option><option>XAGUSD</option><option>XPDUSD</option><option>XPTUSD</option></optgroup>
+        <optgroup label="Năng lượng"><option>SpotCrude</option><option>SpotBrent</option><option>USOILUSD</option></optgroup>
+        <optgroup label="Chỉ số"><option>US30</option><option>US500</option><option>NAS100</option><option>UK100</option><option>GER40</option><option>FRA40</option><option>EUSTX50</option><option>JPN225</option><option>AUS200</option><option>USDX</option></optgroup>
+        <optgroup label="FX"><option>EURUSD</option><option>GBPUSD</option><option>AUDUSD</option><option>NZDUSD</option><option>USDCAD</option><option>USDCHF</option><option>USDJPY</option><option>AUDNZD</option><option>EURNZD</option><option>GBPNZD</option><option>NZDJPY</option></optgroup>
         </select>
         <select id="filter-status" onchange="renderTrades()">
           <option value="">Tất cả TT</option>
@@ -442,7 +446,11 @@ body.light tr:hover td{background:#f2f6fc}
     <div class="form-group">
       <label>Mã giao dịch</label>
       <select id="f-symbol" onchange="calcLot()">
-        <option>BTCUSD</option><option>ETHUSD</option><option>XAUUSD</option><option>USOILUSD</option><option>XAGUSD</option><option>EURUSD</option><option>USDJPY</option>
+        <optgroup label="Crypto"><option>BTCUSD</option><option>ETHUSD</option><option>BNBUSD</option><option>SUIUSD</option><option>HYPEUSD</option><option>LTCUSD</option></optgroup>
+        <optgroup label="Kim loại"><option>XAUUSD</option><option>XAGUSD</option><option>XPDUSD</option><option>XPTUSD</option></optgroup>
+        <optgroup label="Năng lượng"><option>SpotCrude</option><option>SpotBrent</option><option>USOILUSD</option></optgroup>
+        <optgroup label="Chỉ số"><option>US30</option><option>US500</option><option>NAS100</option><option>UK100</option><option>GER40</option><option>FRA40</option><option>EUSTX50</option><option>JPN225</option><option>AUS200</option><option>USDX</option></optgroup>
+        <optgroup label="FX"><option>EURUSD</option><option>GBPUSD</option><option>AUDUSD</option><option>NZDUSD</option><option>USDCAD</option><option>USDCHF</option><option>USDJPY</option><option>AUDNZD</option><option>EURNZD</option><option>GBPNZD</option><option>NZDJPY</option></optgroup>
       </select>
     </div>
     <div class="form-group">
@@ -611,7 +619,11 @@ body.light tr:hover td{background:#f2f6fc}
       <label>Mã liên quan</label>
       <select id="l-symbol">
         <option value="">-- Không gắn mã --</option>
-        <option>BTCUSD</option><option>ETHUSD</option><option>XAUUSD</option><option>USOILUSD</option><option>XAGUSD</option><option>EURUSD</option><option>USDJPY</option>
+        <optgroup label="Crypto"><option>BTCUSD</option><option>ETHUSD</option><option>BNBUSD</option><option>SUIUSD</option><option>HYPEUSD</option><option>LTCUSD</option></optgroup>
+        <optgroup label="Kim loại"><option>XAUUSD</option><option>XAGUSD</option><option>XPDUSD</option><option>XPTUSD</option></optgroup>
+        <optgroup label="Năng lượng"><option>SpotCrude</option><option>SpotBrent</option><option>USOILUSD</option></optgroup>
+        <optgroup label="Chỉ số"><option>US30</option><option>US500</option><option>NAS100</option><option>UK100</option><option>GER40</option><option>FRA40</option><option>EUSTX50</option><option>JPN225</option><option>AUS200</option><option>USDX</option></optgroup>
+        <optgroup label="FX"><option>EURUSD</option><option>GBPUSD</option><option>AUDUSD</option><option>NZDUSD</option><option>USDCAD</option><option>USDCHF</option><option>USDJPY</option><option>AUDNZD</option><option>EURNZD</option><option>GBPNZD</option><option>NZDJPY</option></optgroup>
       </select>
     </div>
     <div class="form-group">
@@ -692,12 +704,48 @@ function checkAuth() {
 // pipVal   = $ profit trên 1 lot chuẩn khi giá chạy 1 pip
 // minLot   = lot tối thiểu
 // Công thức: pipSL = |Entry - SL| / pip  →  Lot = Sizing / (pipSL × pipVal)
+// Thông số ĐO THẬT từ terminal MT5 Pepperstone 30/07/2026 (trade_tick_size/value).
+// pipVal các cặp quote khác USD (JPY/NZD/CAD/CHF, chỉ số EUR/GBP/AUD) trôi theo tỷ giá — sizing gần đúng, số thật lấy từ MT5 sync.
 const PIP_SPECS = {
-  BTCUSD:   { pip: 1,    pipVal: 1,  minLot: 0.01 }, // 1 pip = $1 giá, $1/lot
-  ETHUSD:   { pip: 1,    pipVal: 1,  minLot: 0.01 }, // 1 pip = $1 giá, $1/lot
-  XAUUSD:   { pip: 0.1,  pipVal: 10, minLot: 0.01 }, // 1 pip = $0.1 giá, $10/lot (100oz)
-  USOILUSD: { pip: 0.01, pipVal: 10, minLot: 0.1  }, // 1 pip = $0.01 giá, $10/lot (1000 thùng)
-  XAGUSD:   { pip: 0.01, pipVal: 50, minLot: 0.01 }, // 1 pip = $0.01 giá, $50/lot (5000oz)
+  BTCUSD:   { pip: 1,    pipVal: 1,     minLot: 0.01 }, // 1 pip = $1 giá, $1/lot
+  ETHUSD:   { pip: 1,    pipVal: 1,     minLot: 0.01 }, // 1 pip = $1 giá, $1/lot
+  XAUUSD:   { pip: 0.1,  pipVal: 10,    minLot: 0.01 }, // 1 pip = $0.1 giá, $10/lot (100oz)
+  USOILUSD: { pip: 0.01, pipVal: 10,    minLot: 0.1  }, // mã cũ (broker hiện tại dùng SpotCrude)
+  XAGUSD:   { pip: 0.01, pipVal: 50,    minLot: 0.01 }, // 1 pip = $0.01 giá, $50/lot (5000oz)
+  // Crypto
+  BNBUSD:   { pip: 0.01, pipVal: 0.01,  minLot: 1    },
+  SUIUSD:   { pip: 0.01, pipVal: 1,     minLot: 0.1  }, // contract 100 coin
+  HYPEUSD:  { pip: 0.01, pipVal: 0.1,   minLot: 0.1  }, // contract 10 coin
+  LTCUSD:   { pip: 0.01, pipVal: 0.01,  minLot: 0.1  },
+  // Kim loại
+  XPDUSD:   { pip: 0.01, pipVal: 1,     minLot: 0.01 }, // 100oz
+  XPTUSD:   { pip: 0.01, pipVal: 1,     minLot: 0.01 }, // 100oz
+  // Năng lượng
+  SpotCrude:{ pip: 0.01, pipVal: 1,     minLot: 0.01 }, // 100 thùng/lot
+  SpotBrent:{ pip: 0.01, pipVal: 1,     minLot: 0.01 }, // 100 thùng/lot
+  // Chỉ số
+  US30:     { pip: 0.1,  pipVal: 0.1,   minLot: 0.1  },
+  US500:    { pip: 0.1,  pipVal: 0.1,   minLot: 0.1  },
+  NAS100:   { pip: 0.1,  pipVal: 0.1,   minLot: 0.1  },
+  UK100:    { pip: 0.1,  pipVal: 0.134, minLot: 0.1  },
+  GER40:    { pip: 0.1,  pipVal: 0.115, minLot: 0.1  },
+  FRA40:    { pip: 0.1,  pipVal: 0.115, minLot: 0.1  },
+  EUSTX50:  { pip: 0.1,  pipVal: 0.115, minLot: 0.1  },
+  JPN225:   { pip: 0.1,  pipVal: 0.062, minLot: 0.1  },
+  AUS200:   { pip: 0.1,  pipVal: 0.07,  minLot: 0.1  },
+  USDX:     { pip: 0.01, pipVal: 1,     minLot: 0.1  },
+  // FX
+  EURUSD:   { pip: 0.0001, pipVal: 10,   minLot: 0.01 },
+  GBPUSD:   { pip: 0.0001, pipVal: 10,   minLot: 0.01 },
+  AUDUSD:   { pip: 0.0001, pipVal: 10,   minLot: 0.01 },
+  NZDUSD:   { pip: 0.0001, pipVal: 10,   minLot: 0.01 },
+  USDCAD:   { pip: 0.0001, pipVal: 7.1,  minLot: 0.01 },
+  USDCHF:   { pip: 0.0001, pipVal: 12.4, minLot: 0.01 },
+  USDJPY:   { pip: 0.01,   pipVal: 6.2,  minLot: 0.01 },
+  AUDNZD:   { pip: 0.0001, pipVal: 5.9,  minLot: 0.01 },
+  EURNZD:   { pip: 0.0001, pipVal: 5.9,  minLot: 0.01 },
+  GBPNZD:   { pip: 0.0001, pipVal: 5.9,  minLot: 0.01 },
+  NZDJPY:   { pip: 0.01,   pipVal: 6.2,  minLot: 0.01 },
 };
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
