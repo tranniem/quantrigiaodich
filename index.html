@@ -1840,6 +1840,18 @@ async function syncMT5(manual) {
         if (!exist.symbol && m.sym) { exist.symbol = m.sym; backfilled = true; }
         if (!exist.ordertype && m.side) { exist.ordertype = m.side === 'BUY' ? 'Buy' : 'Sell'; backfilled = true; }
         if (!exist.strat && exist.id === id) { exist.strat = 'MT5 tay'; backfilled = true; }
+        // SỐ LIỆU MT5 LÀ CHÂN LÝ: nếu bản sổ bị sửa tay/app tính lại sai (vd PnL BTC/JPY lệch công thức pip)
+        // → ép về đúng số sàn. Chỉ ép phần SỐ; chiến lược/checklist/ghi chú/đúc kết/ẩn giữ nguyên theo anh.
+        const enforce = { entry: m.entry, closePrice: m.close, lot: m.lot,
+                          pnlUsd: m.pnl, pnlActual: m.pnl,
+                          openTime: m.openTs, closeTime: m.closeTs,
+                          status: m.pnl >= 0 ? 'Chốt lời' : 'Cắt lỗ' };
+        if (m.sl) enforce.sl = m.sl;
+        if (m.tp) enforce.tp = m.tp;
+        if (m.rrAct != null) enforce.rrActual = m.rrAct;
+        for (const k in enforce) {
+          if (enforce[k] != null && exist[k] !== enforce[k]) { exist[k] = enforce[k]; backfilled = true; }
+        }
         continue;
       }
       const dirUp = m.side === 'BUY';
