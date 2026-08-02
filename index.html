@@ -1047,10 +1047,12 @@ function renderEquity() {
 }
 
 function renderCoinStats() {
-  const syms = ['BTCUSD','ETHUSD','XAUUSD','USOILUSD','XAGUSD'];
-  const colors = {BTCUSD:'#f7931a',ETHUSD:'#627eea',XAUUSD:'#f59e0b',USOILUSD:'#10b981',XAGUSD:'#94a3b8'};
+  // TỰ ĐỘNG: mọi mã có lệnh đóng đều hiện — xếp theo PnL giảm dần (mã lãi đậm đứng đầu), hết danh sách cứng
+  const colors = {BTCUSD:'#f7931a',ETHUSD:'#627eea',XAUUSD:'#f59e0b',USOILUSD:'#10b981',XAGUSD:'#94a3b8',USDJPY:'#8b5cf6',EURUSD:'#3b82f6'};
+  const palette = ['#0ea5e9','#22c55e','#eab308','#ec4899','#14b8a6','#f97316','#a78bfa'];
   const closed = state.trades.filter(t => t.status === 'Chốt lời' || t.status === 'Cắt lỗ');
-  const active = syms.filter(s => closed.some(t => t.symbol === s));
+  const sumP = s => closed.filter(t => (t.symbol || '?') === s).reduce((acc,t) => acc + (t.pnlUsd||0), 0);
+  const active = [...new Set(closed.map(t => t.symbol || '?'))].sort((a,b) => sumP(b) - sumP(a));
   const grid = document.getElementById('coin-stats-grid');
   if (!active.length) { grid.innerHTML = '<div class="empty"><div class="empty-icon">📉</div>Chưa có lệnh đóng</div>'; return; }
   grid.innerHTML = active.map(sym => {
@@ -1060,7 +1062,7 @@ function renderCoinStats() {
     const avgRR = ts.length ? (ts.reduce((s,t) => s + (t.rr||0), 0) / ts.length).toFixed(2) : 0;
     const pnl = ts.reduce((s,t) => s + (t.pnlUsd||0), 0);
     return `<div class="coin-card">
-      <div class="coin-name" style="color:${colors[sym]}">${sym}</div>
+      <div class="coin-name" style="color:${colors[sym] || palette[active.indexOf(sym) % palette.length]}">${sym}</div>
       <div class="coin-row"><span>Win Rate</span><span style="color:${wr>=50?'var(--green)':'var(--red)'}">${wr}%</span></div>
       <div class="coin-row"><span>Avg RR</span><span style="color:var(--orange)">1:${avgRR}</span></div>
       <div class="coin-row"><span>Lệnh</span><span>${ts.length} (${w.length}W/${ts.length-w.length}L)</span></div>
