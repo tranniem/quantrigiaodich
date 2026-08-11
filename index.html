@@ -907,9 +907,12 @@ function getSizingMode() {
 
 function getSizingUsd() {
   const mode = getSizingMode();
+  // Vốn khả dụng = vốn − RỦI RO TREO (luật bot v5 của anh Niêm):
+  //  · lệnh CHỜ cũng tính (stop có thể khớp bất cứ lúc nào) · lệnh MỞ chưa hoà tính
+  //  · lệnh đã dời về 0/dương = hết rủi ro → NHẢ chỗ, sizing hồi full
   let effective = state.currentCap;
-  state.trades.filter(t => t.status === 'Đang mở' || t.status === 'Đã dời về 0' || t.status === 'Đã dời về dương')
-    .forEach(t => { effective -= (t.sizingUsd || 0); });
+  state.trades.filter(t => t.status === 'Chờ lệnh' || t.status === 'Đang mở')
+    .forEach(t => { effective -= (t.sizingUsd || t.riskUsd || 0); });
   return Math.max(0, effective) * mode / 100;
 }
 
