@@ -1193,6 +1193,31 @@ function renderMonthSummary() {
       '</td><td style="color:' + col(p) + ';font-weight:600">' + (p >= 0 ? '+' : '') + '$' + p.toFixed(2) + '</td></tr>';
     runD += p;
   });
+  // LỊCH P&L THÁNG (học TradeNote): mỗi ngày một ô, xanh/đỏ đậm nhạt theo độ lớn lãi lỗ ròng
+  const fmtUsd = v => (Math.abs(v) >= 1000 ? (v / 1000).toFixed(1) + 'k' : v.toFixed(0));
+  const maxAbs = Math.max(1, ...Object.keys(byDay).map(k => Math.abs(pnlOf(byDay[k]))));
+  let cal = '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:14px">';
+  cal += ['T2','T3','T4','T5','T6','T7','CN'].map(d => '<div style="text-align:center;font-size:10px;color:var(--dim);font-weight:600;padding:2px 0">' + d + '</div>').join('');
+  const padD = (new Date(msMonth.getFullYear(), msMonth.getMonth(), 1).getDay() + 6) % 7;
+  for (let i = 0; i < padD; i++) cal += '<div></div>';
+  const daysInM = new Date(msMonth.getFullYear(), msMonth.getMonth() + 1, 0).getDate();
+  for (let d = 1; d <= daysInM; d++) {
+    const k = msMonth.getFullYear() + '-' + ('0' + (msMonth.getMonth() + 1)).slice(-2) + '-' + ('0' + d).slice(-2);
+    const ts = byDay[k];
+    if (ts) {
+      const p = pnlOf(ts);
+      const a = (0.10 + 0.45 * Math.min(1, Math.abs(p) / maxAbs)).toFixed(2);
+      const bg = p >= 0 ? 'rgba(38,180,127,' + a + ')' : 'rgba(229,72,77,' + a + ')';
+      cal += '<div style="background:' + bg + ';border:1px solid var(--line);border-radius:8px;padding:6px 4px;text-align:center;min-height:54px">' +
+             '<div style="font-size:10px;color:var(--muted)">' + d + '</div>' +
+             '<div style="font-size:12px;font-weight:700;color:' + (p >= 0 ? 'var(--green)' : 'var(--red)') + '">' + (p >= 0 ? '+' : '−') + '$' + fmtUsd(Math.abs(p)) + '</div>' +
+             '<div style="font-size:9px;color:var(--dim)">' + ts.length + ' lệnh</div></div>';
+    } else {
+      cal += '<div style="background:var(--bg3);border:1px solid var(--line);border-radius:8px;padding:6px 4px;text-align:center;min-height:54px;opacity:.45">' +
+             '<div style="font-size:10px;color:var(--dim)">' + d + '</div></div>';
+    }
+  }
+  cal += '</div>';
   const mp = pnlOf(inM), mpct = mp / cap0 * 100;
   box.innerHTML =
     '<div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">' +
@@ -1200,6 +1225,7 @@ function renderMonthSummary() {
     '<div class="kpi"><div class="kpi-label">Lệnh trong tháng</div><div class="kpi-val blue">' + inM.length + '</div><div class="kpi-sub">' + inM.filter(t => t.status === 'Chốt lời').length + 'W / ' + inM.filter(t => t.status === 'Cắt lỗ').length + 'L · WR ' + wrOf(inM) + '%</div></div>' +
     '<div class="kpi"><div class="kpi-label">Vốn cuối tháng</div><div class="kpi-val cyan">$' + (cap0 + mp).toLocaleString('en-US', {maximumFractionDigits: 0}) + '</div><div class="kpi-sub">cộng dồn theo tuần: ' + (cum.map(v => (v >= 0 ? '+' : '') + v.toFixed(1) + '%').join(' → ') || '--') + '</div></div>' +
     '</div>' +
+    cal +
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px">' +
     '<div class="tbl-wrap"><table><thead><tr><th colspan="5">📅 Theo TUẦN</th></tr><tr><th>Tuần</th><th>Ngày</th><th>Lệnh</th><th>Lợi nhuận (%)</th><th>Lợi nhuận ($)</th></tr></thead><tbody>' + wRows + '</tbody></table></div>' +
     '<div class="tbl-wrap"><table><thead><tr><th colspan="5">📆 Theo NGÀY</th></tr><tr><th>Ngày</th><th>Lệnh</th><th>WR</th><th>Lợi nhuận (%)</th><th>Lợi nhuận ($)</th></tr></thead><tbody>' + dRows + '</tbody></table></div>' +
