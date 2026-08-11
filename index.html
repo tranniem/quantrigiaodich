@@ -6,6 +6,7 @@
 <title>MAXS Trade Journal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -292,12 +293,11 @@ body.light tr:hover td{background:#f2f6fc}
     <div class="kpi"><div class="kpi-label">Kỷ luật</div><div class="kpi-val cyan" id="kpi-discipline">--</div><div class="kpi-sub" id="kpi-discipline-sub">% lệnh có SL đặt trước</div></div>
   </div>
 
-  <!-- EQUITY CHART -->
+  <!-- EQUITY CHART (lightweight-charts của TradingView; xanh trên vốn gốc, đỏ dưới) -->
   <div class="chart-box">
     <div class="chart-title">📈 Biểu đồ tăng trưởng vốn (Equity Curve)</div>
-    <svg class="equity-svg" id="equity-svg" viewBox="0 0 800 110" preserveAspectRatio="none">
-      <text x="400" y="60" text-anchor="middle" fill="#334155" font-size="13">Chưa có dữ liệu</text>
-    </svg>
+    <div id="equity-chart" style="width:100%;height:210px"></div>
+    <svg class="equity-svg" id="equity-svg" viewBox="0 0 800 110" preserveAspectRatio="none" style="display:none"></svg>
     <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-top:3px">
       <span id="eq-start">Bắt đầu</span><span id="eq-end">Hiện tại</span>
     </div>
@@ -1059,9 +1059,47 @@ function renderDashboard() {
   renderCapPhilosophy();
 }
 
+let eqChart = null;
 function renderEquity() {
-  const svg = document.getElementById('equity-svg');
   const log = state.equityLog;
+  const cEl = document.getElementById('equity-chart');
+  if (window.LightweightCharts && cEl) {                 // biểu đồ TradingView: xanh trên vốn gốc, đỏ dưới
+    const light = document.body.classList.contains('light');
+    if (eqChart) { eqChart.remove(); eqChart = null; }
+    cEl.innerHTML = '';
+    if (log.length < 2) { cEl.innerHTML = '<div class="empty" style="padding:70px 0">Chưa có dữ liệu lệnh đóng</div>'; return; }
+    eqChart = LightweightCharts.createChart(cEl, {
+      height: 210,
+      layout: { background: { color: 'transparent' }, textColor: light ? '#5b6780' : '#8b94a7', fontFamily: 'Inter, sans-serif', fontSize: 10 },
+      grid: { vertLines: { visible: false }, horzLines: { color: light ? '#eef1f6' : '#171d29' } },
+      rightPriceScale: { borderVisible: false },
+      timeScale: { borderVisible: false, timeVisible: true, secondsVisible: false },
+      handleScroll: false, handleScale: false
+    });
+    let lastT = 0;
+    const data = log.map((l, i) => {
+      let ms = l.t;
+      if (!ms || ms < 1e12) ms = (log[1] && log[1].t > 1e12) ? log[1].t - 86400000 : Date.now();  // điểm vốn gốc đầu chuỗi
+      let t = Math.floor(ms / 1000);
+      if (t <= lastT) t = lastT + 60;                    // trục thời gian phải tăng dần
+      lastT = t;
+      return { time: t, value: Math.round(l.v * 100) / 100 };
+    });
+    const s = eqChart.addBaselineSeries({
+      baseValue: { type: 'price', price: state.initCap },
+      topLineColor: '#26b47f', topFillColor1: 'rgba(38,180,127,.22)', topFillColor2: 'rgba(38,180,127,.02)',
+      bottomLineColor: '#e5484d', bottomFillColor1: 'rgba(229,72,77,.02)', bottomFillColor2: 'rgba(229,72,77,.22)',
+      lineWidth: 2, priceLineVisible: false
+    });
+    s.setData(data);
+    eqChart.timeScale().fitContent();
+    document.getElementById('eq-start').textContent = 'Vốn gốc $' + Math.round(state.initCap).toLocaleString('en-US');
+    document.getElementById('eq-end').textContent = 'Hiện tại $' + Math.round(log[log.length - 1].v).toLocaleString('en-US');
+    return;
+  }
+  // phao dự phòng: SVG cũ khi CDN không tải được
+  const svg = document.getElementById('equity-svg');
+  svg.style.display = 'block';
   if (log.length < 2) { svg.innerHTML = '<text x="400" y="60" text-anchor="middle" fill="#334155" font-size="13">Chưa có dữ liệu lệnh đóng</text>'; return; }
   const vals = log.map(l => l.v);
   const mn = Math.min(...vals), mx = Math.max(...vals), range = mx - mn || 1;
@@ -2220,7 +2258,7 @@ setInterval(loadBotData, 30000);
 </script>
 <script>
 function applyTheme(t){document.body.classList.toggle('light',t==='light');var b=document.getElementById('theme-btn');if(b)b.textContent=(t==='light'?'🌙':'☀️');}
-function toggleTheme(){var t=document.body.classList.contains('light')?'dark':'light';localStorage.setItem('maxs_theme',t);applyTheme(t);}
+function toggleTheme(){var t=document.body.classList.contains('light')?'dark':'light';localStorage.setItem('maxs_theme',t);applyTheme(t);if(typeof renderEquity==='function'&&typeof state!=='undefined'&&state.equityLog)renderEquity();}
 applyTheme(localStorage.getItem('maxs_theme')||'light');
 </script>
 </body>
