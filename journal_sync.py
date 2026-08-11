@@ -49,15 +49,40 @@ def main():
 
     deals = mt5.history_deals_get(FROM_DATE, datetime.now() + timedelta(days=1)) or []
     mt5_orders = {o.ticket: o for o in (mt5.history_orders_get(FROM_DATE, datetime.now() + timedelta(days=1)) or [])}
+    live_pos = mt5.positions_get() or []
+    live_ord = mt5.orders_get() or []
     # thong so tung symbol — de TU TINH pip/RR/risk$ cho moi thi truong (FX, vang, chi so, dau...)
     syminfo = {}
-    for s in {d.symbol for d in deals if d.symbol}:
+    all_syms = {d.symbol for d in deals if d.symbol} | {p.symbol for p in live_pos} | {o.symbol for o in live_ord}
+    for s in all_syms:
         si = mt5.symbol_info(s)
         if si:
             syminfo[s] = {"point": si.point, "digits": si.digits,
                           "tick_size": si.trade_tick_size or si.point,
                           "tick_value": si.trade_tick_value}
     mt5.shutdown()
+
+    def risk_usd_of(sym, px, sl, vol):
+        si = syminfo.get(sym, {})
+        if not sl or not si.get("tick_size") or not si.get("tick_value"):
+            return None
+        return round(abs(px - sl) / si["tick_size"] * si["tick_value"] * vol, 2)
+
+    # VI THE MO + LENH CHO dang treo tren san (lenh TAY) — app tru rui ro treo vao sizing
+    open_items = []
+    for p in live_pos:
+        if p.magic != 0:
+            continue
+        open_items.append({"kind": "open", "sym": p.symbol, "side": "BUY" if p.type == 0 else "SELL",
+                           "entry": p.price_open, "sl": p.sl or None, "lot": p.volume,
+                           "risk": risk_usd_of(p.symbol, p.price_open, p.sl, p.volume)})
+    for o in live_ord:
+        if o.magic != 0:
+            continue
+        side = "BUY" if o.type in (0, 2, 4) else "SELL"                 # buy/buy-limit/buy-stop
+        open_items.append({"kind": "pending", "sym": o.symbol, "side": side,
+                           "entry": o.price_open, "sl": o.sl or None, "lot": o.volume_current,
+                           "risk": risk_usd_of(o.symbol, o.price_open, o.sl, o.volume_current)})
 
     # gom deal theo position — chi lenh TAY (magic 0), bo deal so du/nap rut
     pos = {}
@@ -129,10 +154,14 @@ def main():
     if out:
         r = requests.patch(f"{fb}/journal/mt5.json{auth}", json=out, timeout=15)
         r.raise_for_status()
+    # PUT (ghi de) — lenh dong/huy tu bien mat khoi danh sach treo
+    requests.put(f"{fb}/journal/mt5open.json{auth}",
+                 json={"ts": int(datetime.now().timestamp() * 1000), "items": open_items}, timeout=15)
     meta = {"lastSync": int(datetime.now().timestamp() * 1000), "acc": ai.login, "server": ai.server,
             "demo": ai.trade_mode != 2, "balance": round(ai.balance, 2), "closed": len(out), "open": n_open}
     requests.patch(f"{fb}/journal/mt5meta.json{auth}", json=meta, timeout=15)
-    print(f"OK: {len(out)} lenh tay da dong day len Firebase · {n_open} lenh dang mo (cho dong)"
+    treo = sum(x["risk"] or 0 for x in open_items)
+    print(f"OK: {len(out)} lenh dong · {len(open_items)} lenh treo (rui ro {treo:,.1f}$)"
           f" · tai khoan {ai.login} ({'DEMO' if ai.trade_mode != 2 else 'THAT'}) · balance {ai.balance:,.2f}")
     return 0
 

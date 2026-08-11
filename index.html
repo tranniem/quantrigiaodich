@@ -255,6 +255,7 @@ body.light tr:hover td{background:#f2f6fc}
       <div class="sb-label">Sizing hiện tại</div>
       <div id="sizing-mode-display" class="mode-tag mode-6" style="margin-top:3px">5% / lệnh</div>
       <div id="sizing-usd" style="font-size:22px;font-weight:800;color:var(--orange);letter-spacing:-.5px;margin-top:2px">= $0.00</div>
+      <div class="sb-sub" id="sizing-hold"></div>
     </div>
     <div class="vdivider"></div>
     <div class="sb-item">
@@ -905,15 +906,27 @@ function getSizingMode() {
   return 5;                                  // anh Niêm 29/07: chuẩn 5%/lệnh (nâng 10% khi đạt chuẩn 10 lệnh)
 }
 
+let sizingReserve = { n: 0, usd: 0, unknown: 0 };      // rủi ro treo hiện tại (hiện trên banner)
 function getSizingUsd() {
   const mode = getSizingMode();
   // Vốn khả dụng = vốn − RỦI RO TREO (luật bot v5 của anh Niêm):
-  //  · lệnh CHỜ cũng tính (stop có thể khớp bất cứ lúc nào) · lệnh MỞ chưa hoà tính
+  //  · nguồn 1: vị thế mở + lệnh chờ THẬT trên sàn (mt5Open, sync 5 phút/lần)
+  //  · nguồn 2: dòng kế hoạch trong sổ (Chờ lệnh/Đang mở) CHƯA khớp với sàn — tránh trừ đúp
   //  · lệnh đã dời về 0/dương = hết rủi ro → NHẢ chỗ, sizing hồi full
-  let effective = state.currentCap;
-  state.trades.filter(t => t.status === 'Chờ lệnh' || t.status === 'Đang mở')
-    .forEach(t => { effective -= (t.sizingUsd || t.riskUsd || 0); });
-  return Math.max(0, effective) * mode / 100;
+  let reserve = 0, n = 0, unknown = 0;
+  (mt5Open || []).forEach(o => {
+    n++;
+    if (o.risk != null) reserve += o.risk; else unknown++;
+  });
+  state.trades.filter(t => t.status === 'Chờ lệnh' || t.status === 'Đang mở').forEach(t => {
+    const matched = (mt5Open || []).some(o =>
+      (o.sym || '').toUpperCase() === (t.symbol || '').toUpperCase() &&
+      (t.ordertype || t.dir || '').toUpperCase().indexOf((o.side || '').toUpperCase()) === 0 &&
+      t.entry && o.entry && Math.abs(t.entry - o.entry) / o.entry <= 0.002);
+    if (!matched) { n++; reserve += (t.sizingUsd || t.riskUsd || 0); }
+  });
+  sizingReserve = { n: n, usd: reserve, unknown: unknown };
+  return Math.max(0, state.currentCap - reserve) * mode / 100;
 }
 
 function getStreak() {
@@ -939,6 +952,11 @@ function renderDashboard() {
   modeEl.textContent = mode + '% / lệnh';
   modeEl.className = 'mode-tag ' + (mode === 10 ? 'mode-10' : 'mode-6');
   document.getElementById('sizing-usd').textContent = '= $' + sUsd.toFixed(2);
+  const shEl = document.getElementById('sizing-hold');
+  if (shEl) shEl.textContent = sizingReserve.n
+    ? ('rủi ro treo: ' + sizingReserve.n + ' lệnh · $' + sizingReserve.usd.toFixed(0) +
+       (sizingReserve.unknown ? ' (+' + sizingReserve.unknown + ' lệnh KHÔNG SL — không đo được!)' : ''))
+    : 'không có rủi ro treo';
 
   const streak = getStreak();
   const sEl = document.getElementById('streak-display');
@@ -1899,15 +1917,18 @@ setInterval(tickRealtimeTimers, 1000);
 // ═══ BOT PERFORMANCE — Phase 1: GIÁM SÁT SỐNG (Firebase realtime + giá Binance) ═══
 const BOT_FB_URL = 'https://maxs-trading-default-rtdb.asia-southeast1.firebasedatabase.app';
 
+let mt5Open = [];                                      // vị thế mở + lệnh chờ THẬT trên sàn (journal/mt5open)
 // ─── MT5 SYNC — lệnh TAY đã đóng từ terminal (journal_sync.py trên PC đẩy lên Firebase journal/mt5) ───
 // Mỗi lệnh MT5 được NHẬP thành lệnh thật trong sổ (id = mt5_<tài khoản>_<ticket>, không bao giờ trùng)
 // → dùng được mọi tính năng sẵn có: sửa, 8 BƯỚC, Đúc kết 📝, thống kê, equity. Số liệu gốc nằm ở note.
 async function syncMT5(manual) {
   try {
-    const [tr, meta] = await Promise.all([
+    const [tr, meta, od] = await Promise.all([
       fetch(BOT_FB_URL + '/journal/mt5.json?t=' + Date.now()).then(r => r.json()),
-      fetch(BOT_FB_URL + '/journal/mt5meta.json?t=' + Date.now()).then(r => r.json())
+      fetch(BOT_FB_URL + '/journal/mt5meta.json?t=' + Date.now()).then(r => r.json()),
+      fetch(BOT_FB_URL + '/journal/mt5open.json?t=' + Date.now()).then(r => r.json()).catch(() => null)
     ]);
+    mt5Open = (od && od.items) ? od.items : [];        // lệnh treo THẬT trên sàn — trừ vào sizing
     const el = document.getElementById('mt5-sync-meta');
     if (meta && el) el.textContent = 'MT5 ' + meta.acc + (meta.demo ? ' (demo)' : ' (THẬT)') +
       ' · sync ' + new Date(meta.lastSync).toLocaleTimeString('vi-VN');
@@ -2004,6 +2025,7 @@ async function syncMT5(manual) {
       }
     }
     if (added || calibrated || backfilled) { saveToStorage(); renderAll(); }
+    else renderDashboard();                            // vẫn cập nhật sizing/rủi ro treo dù không có lệnh mới
     if (manual) alert(added ? ('Đã nhập ' + added + ' lệnh tay MT5 mới vào sổ — bấm 📝 từng lệnh để đúc kết.') : 'Không có lệnh MT5 mới.');
   } catch (e) { if (manual) alert('Lỗi đồng bộ MT5: ' + e.message); }
 }
