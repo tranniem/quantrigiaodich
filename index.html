@@ -254,7 +254,7 @@ body.light tr:hover td{background:#f2f6fc}
     <div class="vdivider"></div>
     <div class="sb-item">
       <div class="sb-label">Sizing hiện tại</div>
-      <div id="sizing-mode-display" class="mode-tag mode-6" style="margin-top:3px">5% / lệnh</div>
+      <div id="sizing-mode-display" class="mode-tag mode-6" style="margin-top:3px">2.5% / lệnh</div>
       <div id="sizing-usd" style="font-size:22px;font-weight:800;color:var(--orange);letter-spacing:-.5px;margin-top:2px">= $0.00</div>
       <div class="sb-sub" id="sizing-hold"></div>
     </div>
@@ -547,7 +547,7 @@ body.light tr:hover td{background:#f2f6fc}
     </div>
     <div class="check-item" onclick="toggleCheck(this,5)">
       <div class="check-dot"></div>
-      <div class="check-label"><b>C6 – Size theo số cam 5%</b><br><span style="color:var(--dim);font-size:10px">Lot = sizing $ ÷ khoảng SL — không làm tròn lên</span></div>
+      <div class="check-label"><b>C6 – Size theo số cam 2.5%</b><br><span style="color:var(--dim);font-size:10px">Lot = sizing $ ÷ khoảng SL — không làm tròn lên</span></div>
       <span class="check-status" style="color:var(--dim)">Chưa</span>
     </div>
     <div class="check-item" onclick="toggleCheck(this,6)">
@@ -896,15 +896,10 @@ function recalcCurrentCap() {
 }
 
 // ─── SIZING ───────────────────────────────────────────────────────────────────
-function getSizingMode() {
-  const closed10 = state.trades.filter(t => t.status === 'Chốt lời' || t.status === 'Cắt lỗ').slice(-10);
-  if (closed10.length >= 10) {
-    const wins = closed10.filter(t => t.status === 'Chốt lời').length;
-    const avgRR = closed10.reduce((s,t) => s + (t.rr||0), 0) / 10;
-    if (wins / 10 >= 0.7 && avgRR >= 2) return 10;
-  }
-  return 5;                                  // anh Niêm 29/07: chuẩn 5%/lệnh (nâng 10% khi đạt chuẩn 10 lệnh)
-}
+// anh Niêm 29/09: KHOÁ CỨNG 2.5%/lệnh — bỏ chế độ tự nâng 10% (từng bật nhầm vì đếm lệnh lãi vài $ là thắng
+// + lấy RR kế hoạch thay RR thật → 2 lệnh SL BTC/SpotCrude mất ~1.000$/lệnh)
+const RISK_PCT = 2.5;
+function getSizingMode() { return RISK_PCT; }
 
 let sizingReserve = { n: 0, usd: 0, unknown: 0 };      // rủi ro treo hiện tại (hiện trên banner)
 function getSizingUsd() {
@@ -950,7 +945,7 @@ function renderDashboard() {
   const sUsd = getSizingUsd();
   const modeEl = document.getElementById('sizing-mode-display');
   modeEl.textContent = mode + '% / lệnh';
-  modeEl.className = 'mode-tag ' + (mode === 10 ? 'mode-10' : 'mode-6');
+  modeEl.className = 'mode-tag mode-6';
   document.getElementById('sizing-usd').textContent = '= $' + sUsd.toFixed(2);
   const shEl = document.getElementById('sizing-hold');
   if (shEl) shEl.textContent = sizingReserve.n
@@ -1030,12 +1025,12 @@ function renderDashboard() {
     curLs = t.status === 'Cắt lỗ' ? curLs + 1 : 0;
     if (curLs > lstreak) lstreak = curLs;
   });
-  // kỷ luật (anh Niêm 29/07): 2 thứ BẤT BIẾN — ① đặt SL ② vốn vào đúng % (5%±1) — chiến lược đổi được, 2 cái này thì không
+  // kỷ luật (anh Niêm 29/07): 2 thứ BẤT BIẾN — ① đặt SL ② vốn vào đúng % (2.5%±0.5) — chiến lược đổi được, 2 cái này thì không
   const pctSL = closed.length ? closed.filter(t => t.sl).length / closed.length * 100 : 0;
   const chronoAll = [...closed].sort((a,b) => (a.closeTime||0) - (b.closeTime||0));
   const equityAt = ts => { let eq = state.initCap; for (const t of chronoAll) { if ((t.closeTime||0) < ts) eq += (t.pnlUsd||0); } return Math.max(1, eq); };
   const measurable = closed.filter(t => (t.riskUsd || t.sizingUsd) && t.openTime);
-  const okRisk = measurable.filter(t => { const p = (t.riskUsd || t.sizingUsd) / equityAt(t.openTime) * 100; return p >= 4 && p <= 6; });
+  const okRisk = measurable.filter(t => { const p = (t.riskUsd || t.sizingUsd) / equityAt(t.openTime) * 100; return p >= RISK_PCT - 0.5 && p <= RISK_PCT + 0.5; });
   const exEl = document.getElementById('kpi-expect');
   if (exEl) {
     exEl.textContent = (expect >= 0 ? '+' : '') + '$' + expect.toFixed(2);
@@ -1048,7 +1043,7 @@ function renderDashboard() {
     document.getElementById('kpi-lstreak').textContent = lstreak + ' lệnh';
     document.getElementById('kpi-discipline').textContent = pctSL.toFixed(0) + '% có SL';
     document.getElementById('kpi-discipline-sub').textContent = measurable.length
-      ? 'vốn đúng 5%±1: ' + okRisk.length + '/' + measurable.length + ' lệnh đo được'
+      ? 'vốn đúng ' + RISK_PCT + '%±0.5: ' + okRisk.length + '/' + measurable.length + ' lệnh đo được'
       : 'vốn đúng %: chưa đo được (cần SL để biết risk$)';
   }
 
